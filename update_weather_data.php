@@ -21,20 +21,18 @@ $data = [];
 $placeholders = [];
 $values = [];
 
-// Add datatimestamp and recorded_at
+// Add recorded_at
 if (isset($json['current']['datatimestamp'])) {
-    $data[] = 'datatimestamp';
     $data[] = 'recorded_at';
     $placeholders[] = '?';
-    $placeholders[] = '?';
-    $values[] = $json['current']['datatimestamp'];
     $values[] = date('Y-m-d H:i:s', $json['current']['datatimestamp']);
 }
 
 // Add all non-null values from current data
 foreach ($columns as $column) {
     if (isset($json['current'][$column]) && $json['current'][$column] !== '') {
-        $data[] = $column;
+        // Escape column names with backticks
+        $data[] = "`$column`";
         $placeholders[] = '?';
         $values[] = $json['current'][$column];
     }
@@ -48,7 +46,10 @@ if (empty($data)) {
 $sql = "INSERT INTO weather_data (" . implode(', ', $data) . ") 
         VALUES (" . implode(', ', $placeholders) . ")
         ON DUPLICATE KEY UPDATE " . 
-        implode(', ', array_map(function($col) { return "$col = VALUES($col)"; }, $data));
+        implode(', ', array_map(function($col) { 
+            $col = trim($col, '`'); // Remove backticks if present
+            return "`$col` = VALUES(`$col`)"; 
+        }, $data));
 
 try {
     $stmt = $db->prepare($sql);
