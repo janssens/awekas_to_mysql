@@ -137,7 +137,10 @@ $measurements = require 'config/measurements.php';
             </div>
         </div>
     </div>
-
+    <script>
+    const vapidPublicKey = '<?php echo VAPID_PUBLIC_KEY; ?>';
+    </script>
+    <script src="/js/push-notifications.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html> 
