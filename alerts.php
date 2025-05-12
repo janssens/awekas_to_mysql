@@ -85,7 +85,7 @@ $measurements = require 'config/measurements.php';
                     <tbody>
                         <?php foreach ($alerts as $alert): ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($measurements[$alert['alert_key']] ?? $alert['alert_key']); ?></td>
+                                <td><?php echo htmlspecialchars($measurements[$alert['alert_key']]['name'] ?? $alert['alert_key']); ?></td>
                                 <td>
                                     <?php 
                                     echo $alert['alert_type'] === 'goes_above' ? 
