@@ -30,6 +30,13 @@ function loadEnv($path = '.env') {
 // Load environment variables
 loadEnv();
 
+// Set timezone
+if (defined('TIMEZONE')) {
+    date_default_timezone_set(TIMEZONE);
+} else {
+    date_default_timezone_set('Europe/Paris'); // Default timezone
+}
+
 // Create database connection
 try {
     $db = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);

@@ -1,31 +1,29 @@
 <?php
 require_once 'config.php';
 
+// Load measurements configuration
+$measurements = require_once 'config/measurements.php';
+
 try {
-    // Get the latest weather data
-    $stmt = $db->query("SELECT * FROM weather_data ORDER BY datatimestamp DESC LIMIT 1");
+    // Get the latest non-null values for each measurement
+    $measurementFields = array_keys($measurements);
+    $fields = implode(', ', array_map(function($field) {
+        return "(SELECT $field FROM weather_data WHERE $field IS NOT NULL ORDER BY datatimestamp DESC LIMIT 1) as $field";
+    }, $measurementFields));
+    
+    $stmt = $db->query("SELECT 
+        (SELECT datatimestamp FROM weather_data ORDER BY datatimestamp DESC LIMIT 1) as recorded_at,
+        $fields");
     $data = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch(PDOException $e) {
     die("Error fetching data: " . $e->getMessage());
 }
 
-// Define display names and units for the values we want to show
-$displayData = [
-    'recorded_at' => ['name' => 'Date et heure', 'unit' => '', 'format' => function($val) { return $val; }],
-    'temperature' => ['name' => 'Température', 'unit' => '°C', 'format' => function($val) { return number_format($val, 1); }],
-    'humidity' => ['name' => 'Humidité', 'unit' => '%', 'format' => function($val) { return $val; }],
-    'dewpoint' => ['name' => 'Point de rosée', 'unit' => '°C', 'format' => function($val) { return number_format($val, 1); }],
-    'windchill' => ['name' => 'Température ressentie', 'unit' => '°C', 'format' => function($val) { return number_format($val, 1); }],
-    'wetbulbtemperature' => ['name' => 'Température humide', 'unit' => '°C', 'format' => function($val) { return number_format($val, 1); }],
-    'windspeed' => ['name' => 'Vitesse du vent', 'unit' => 'km/h', 'format' => function($val) { return number_format($val, 1); }],
-    'gustspeed' => ['name' => 'Rafales', 'unit' => 'km/h', 'format' => function($val) { return number_format($val, 1); }],
-    'winddirection' => ['name' => 'Direction du vent', 'unit' => '°', 'format' => function($val) { return $val; }],
-    'uv' => ['name' => 'Index UV', 'unit' => '', 'format' => function($val) { return number_format($val, 1); }],
-    'solar' => ['name' => 'Rayonnement solaire', 'unit' => 'W/m²', 'format' => function($val) { return $val; }],
-    'precipitation' => ['name' => 'Précipitations', 'unit' => 'mm', 'format' => function($val) { return number_format($val, 1); }],
-    'indoortemperature' => ['name' => 'Température intérieure', 'unit' => '°C', 'format' => function($val) { return number_format($val, 1); }],
-    'indoorhumidity' => ['name' => 'Humidité intérieure', 'unit' => '%', 'format' => function($val) { return $val; }]
-];
+// Function to format datetime in current timezone
+function formatDateTime($mysqlDateTime) {
+    $dt = new DateTime($mysqlDateTime);
+    return $dt->format('d/m/Y H:i');
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -49,6 +47,14 @@ $displayData = [
             font-size: 0.9em;
             color: #6c757d;
         }
+        .measurement-group {
+            margin-bottom: 2rem;
+        }
+        .measurement-group h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #495057;
+        }
     </style>
 </head>
 <body>
@@ -56,36 +62,67 @@ $displayData = [
         <div class="weather-card p-4">
             <h1 class="h3 mb-4">Dernières mesures météorologiques</h1>
             <p class="update-time mb-4">
-                Dernière mise à jour : <?php echo date('d/m/Y H:i', strtotime($data['recorded_at'])); ?>
+                Dernière mise à jour : <?php echo formatDateTime($data['recorded_at']); ?>
+                <?php if (defined('TIMEZONE')): ?>
+                    (<?php echo TIMEZONE; ?>)
+                <?php endif; ?>
             </p>
 
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead>
-                        <tr>
-                            <th>Mesure</th>
-                            <th class="text-end">Valeur</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($displayData as $key => $info): ?>
-                            <?php if (isset($data[$key]) && $data[$key] !== '' && $data[$key] !== null): ?>
+            <?php
+            // Group measurements by their position in the config file
+            $groups = [
+                'Mesures principales' => array_slice($measurements, 0, 11),
+                'Sondes de température' => array_slice($measurements, 11, 4),
+                'Sondes d\'humidité' => array_slice($measurements, 15, 4),
+                'Mesures intérieures' => array_slice($measurements, 19, 2),
+                'Autres mesures' => array_slice($measurements, 21)
+            ];
+            ?>
+
+            <?php foreach ($groups as $groupName => $groupMeasurements): ?>
+                <?php
+                // Check if there are any non-null values in this group
+                $hasValues = false;
+                foreach ($groupMeasurements as $key => $info) {
+                    if (isset($data[$key]) && $data[$key] !== '' && $data[$key] !== null) {
+                        $hasValues = true;
+                        break;
+                    }
+                }
+                if (!$hasValues) continue;
+                ?>
+                <div class="measurement-group">
+                    <h2><?php echo htmlspecialchars($groupName); ?></h2>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
                                 <tr>
-                                    <td><?php echo htmlspecialchars($info['name']); ?></td>
-                                    <td class="text-end">
-                                        <?php 
-                                        echo htmlspecialchars($info['format']($data[$key]));
-                                        if ($info['unit']) {
-                                            echo ' ' . htmlspecialchars($info['unit']);
-                                        }
-                                        ?>
-                                    </td>
+                                    <th>Mesure</th>
+                                    <th class="text-end">Valeur</th>
                                 </tr>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($groupMeasurements as $key => $info): ?>
+                                    <?php if (isset($data[$key]) && $data[$key] !== '' && $data[$key] !== null): ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($info['name']); ?></td>
+                                            <td class="text-end">
+                                                <?php 
+                                                $formattedValue = $info['format']($data[$key]);
+                                                echo htmlspecialchars($formattedValue);
+                                                if ($info['unit']) {
+                                                    echo ' ' . htmlspecialchars($info['unit']);
+                                                }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            <?php endforeach; ?>
         </div>
     </div>
 
