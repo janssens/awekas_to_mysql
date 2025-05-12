@@ -20,8 +20,9 @@ try {
 }
 
 // Function to format datetime in current timezone
-function formatDateTime($mysqlDateTime) {
-    $dt = new DateTime($mysqlDateTime);
+function formatDateTime($timestamp) {
+    $dt = new DateTime();
+    $dt->setTimestamp($timestamp);
     return $dt->format('d/m/Y H:i');
 }
 ?>
