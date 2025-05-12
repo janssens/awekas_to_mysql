@@ -138,10 +138,10 @@ $groupedMeasurements = [
                                     <option value="">Choisir une mesure</option>
                                     <?php foreach ($groupedMeasurements as $group => $items): ?>
                                         <optgroup label="<?php echo htmlspecialchars($group); ?>">
-                                            <?php foreach ($items as $key => $name): ?>
-                                                <option value="<?php echo $key; ?>" 
+                                            <?php foreach ($items as $key => $info): ?>
+                                                <option value="<?php echo htmlspecialchars($key); ?>" 
                                                     <?php echo $alert['alert_key'] === $key ? 'selected' : ''; ?>>
-                                                    <?php echo htmlspecialchars($name); ?>
+                                                    <?php echo htmlspecialchars($info['name']); ?>
                                                 </option>
                                             <?php endforeach; ?>
                                         </optgroup>
