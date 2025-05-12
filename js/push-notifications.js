@@ -8,7 +8,7 @@ if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
 async function initPushNotifications() {
     try {
         // Register service worker
-        const registration = await navigator.serviceWorker.register('/service-worker.js');
+        const registration = await navigator.serviceWorker.register('./service-worker.js');
         console.log('Service Worker registered');
 
         // Check notification permission
