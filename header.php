@@ -17,13 +17,22 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link <?php echo $current_page === 'stats.php' ? 'active' : ''; ?>" 
+                       href="stats.php">
+                        <i class="bi bi-graph-up"></i> Statistiques
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link <?php echo $current_page === 'alerts.php' ? 'active' : ''; ?>" 
                        href="alerts.php">
                         <i class="bi bi-bell"></i> Alertes
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="./telegram_config.php">Configuration Telegram</a>
+                    <a class="nav-link <?php echo $current_page === 'telegram_config.php' ? 'active' : ''; ?>" 
+                       href="telegram_config.php">
+                        <i class="bi bi-telegram"></i> Configuration Telegram
+                    </a>
                 </li>
             </ul>
         </div>
