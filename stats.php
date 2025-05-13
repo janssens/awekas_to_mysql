@@ -14,11 +14,11 @@ function getStats($db, $measurement, $period) {
         AVG($measurement) as avg_value,
         COUNT(*) as total_readings
     FROM weather_data 
-    WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL ? $period)
+    WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL ?)
     AND $measurement IS NOT NULL";
 
     $stmt = $db->prepare($sql);
-    $stmt->execute(['1']);
+    $stmt->execute([$period]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
