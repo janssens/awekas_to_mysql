@@ -5,7 +5,36 @@ let subscriptionId = null;
 if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.log('Push notifications not supported');
 } else {
+    initializeNotifications();
+}
+
+async function initializeNotifications() {
     const button = document.getElementById("notifications");
+    
+    try {
+        // Check if service worker is already registered
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+            // Check for existing subscription
+            pushSubscription = await registration.pushManager.getSubscription();
+            
+            if (pushSubscription) {
+                // Get subscription details from server
+                const response = await fetch(`./get-subscriptions.php?endpoint=${encodeURIComponent(pushSubscription.endpoint)}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    subscriptionId = data.subscription_id;
+                    updateNotificationButton(true);
+                    updateSubscriptionToggles(data.subscribed_alerts);
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Error initializing notifications:', err);
+    }
+
+    // Add click handler for main notification button
     button.addEventListener("click", () => {
         Notification.requestPermission().then((result) => {
             if (result === "granted") {
@@ -34,11 +63,39 @@ if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     });
 }
 
+function updateNotificationButton(isSubscribed) {
+    const button = document.getElementById("notifications");
+    if (isSubscribed) {
+        button.classList.remove('btn-outline-primary');
+        button.classList.add('btn-success');
+        button.innerHTML = '<i class="bi bi-bell-fill"></i> Notifications activées';
+    } else {
+        button.classList.remove('btn-success');
+        button.classList.add('btn-outline-primary');
+        button.innerHTML = '<i class="bi bi-bell"></i> Activer les notifications';
+    }
+}
+
+function updateSubscriptionToggles(subscribedAlerts) {
+    document.querySelectorAll('.subscription-toggle').forEach(toggle => {
+        const alertId = toggle.dataset.alertId;
+        if (subscribedAlerts.includes(parseInt(alertId))) {
+            toggle.classList.remove('unsubscribed');
+            toggle.classList.add('subscribed');
+            toggle.title = 'Cliquez pour désactiver les notifications';
+        } else {
+            toggle.classList.remove('subscribed');
+            toggle.classList.add('unsubscribed');
+            toggle.title = 'Cliquez pour recevoir les notifications';
+        }
+    });
+}
+
 async function toggleAlertSubscription(toggle) {
     try {
         const alertId = toggle.dataset.alertId;
         
-        const response = await fetch('./toggle-alert-subscription.php', {
+        const response = await fetch('/toggle-alert-subscription.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -115,7 +172,7 @@ async function initPushNotifications() {
         };
 
         // Send subscription to server
-        const response = await fetch('./save-subscription.php', {
+        const response = await fetch('/save-subscription.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -132,10 +189,7 @@ async function initPushNotifications() {
         console.log('Subscription saved successfully:', result);
 
         // Update UI
-        const button = document.getElementById("notifications");
-        button.classList.remove('btn-outline-primary');
-        button.classList.add('btn-success');
-        button.innerHTML = '<i class="bi bi-bell-fill"></i> Notifications activées';
+        updateNotificationButton(true);
 
     } catch (err) {
         console.error('Push notification setup failed:', err);
