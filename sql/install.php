@@ -8,9 +8,9 @@ $sqlDir = __DIR__;
 // List of SQL files to execute in order
 $sqlFiles = [
     'create_weather_data_table.sql',
-    'create_weather_alerts_table.sql',
+    'create_alerts_table.sql',
     'create_push_subscriptions_table.sql',
-    'push_subscriptions_alerts.sql'
+    'create_push_subscriptions_alerts_table.sql'
 ];
 
 function executeSqlFile($db, $sqlDir, $file) {
