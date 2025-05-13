@@ -1,5 +1,23 @@
 <?php
 require_once 'config.php';
+require_once 'includes/TelegramNotifier.php';
+
+// Handle test request
+if (isset($_POST['action']) && $_POST['action'] === 'test') {
+    header('Content-Type: application/json');
+    
+    try {
+        $telegram = new TelegramNotifier($db);
+        $result = $telegram->testConfiguration();
+        echo json_encode($result);
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Erreur : ' . $e->getMessage()
+        ]);
+    }
+    exit;
+}
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -62,6 +80,12 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configuration Telegram</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #testResult {
+            display: none;
+            margin-top: 1rem;
+        }
+    </style>
 </head>
 <body class="bg-light">
     <?php require_once 'header.php'; ?>
@@ -87,7 +111,7 @@ try {
                             </div>
                         <?php endif; ?>
 
-                        <form method="post">
+                        <form method="post" id="configForm">
                             <div class="mb-3">
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" id="is_active" 
@@ -114,11 +138,18 @@ try {
                                 </div>
                             </div>
 
-                            <div class="d-flex justify-content-between">
+                            <div class="alert alert-info" role="alert" id="testResult"></div>
+
+                            <div class="d-flex justify-content-between align-items-center">
                                 <a href="alerts.php" class="btn btn-outline-secondary">Retour aux alertes</a>
-                                <button type="submit" class="btn btn-primary">
-                                    Enregistrer la configuration
-                                </button>
+                                <div>
+                                    <button type="button" class="btn btn-info me-2" id="testButton">
+                                        <i class="bi bi-send"></i> Tester la configuration
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-save"></i> Enregistrer la configuration
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -128,5 +159,39 @@ try {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const testButton = document.getElementById('testButton');
+        const testResult = document.getElementById('testResult');
+        const configForm = document.getElementById('configForm');
+
+        testButton.addEventListener('click', async function() {
+            testButton.disabled = true;
+            testResult.style.display = 'block';
+            testResult.className = 'alert alert-info';
+            testResult.textContent = 'Test en cours...';
+
+            try {
+                const response = await fetch('telegram_config.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'action=test'
+                });
+
+                const result = await response.json();
+                
+                testResult.className = `alert alert-${result.success ? 'success' : 'danger'}`;
+                testResult.textContent = result.message;
+            } catch (error) {
+                testResult.className = 'alert alert-danger';
+                testResult.textContent = 'Erreur lors du test : ' + error.message;
+            } finally {
+                testButton.disabled = false;
+            }
+        });
+    });
+    </script>
 </body>
 </html> 

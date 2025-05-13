@@ -28,6 +28,32 @@ class TelegramNotifier {
         return $this->isActive && !empty($this->botToken) && !empty($this->channelId);
     }
 
+    public function testConfiguration() {
+        if (!$this->isConfigured()) {
+            return [
+                'success' => false,
+                'message' => 'La configuration Telegram n\'est pas active ou est incomplète.'
+            ];
+        }
+
+        $testMessage = "<b>🔧 Test de Configuration</b>\n\n" .
+                      "La configuration de votre bot Telegram est fonctionnelle.\n" .
+                      "Vous recevrez les alertes météo sur ce canal.\n\n" .
+                      "🕒 " . date('d/m/Y H:i:s');
+
+        if ($this->sendMessage($testMessage)) {
+            return [
+                'success' => true,
+                'message' => 'Message de test envoyé avec succès !'
+            ];
+        } else {
+            return [
+                'success' => false,
+                'message' => 'Erreur lors de l\'envoi du message de test. Vérifiez le token du bot et l\'ID du canal.'
+            ];
+        }
+    }
+
     public function sendMessage($message) {
         if (!$this->isConfigured()) {
             return false;
