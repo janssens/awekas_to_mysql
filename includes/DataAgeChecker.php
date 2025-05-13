@@ -24,8 +24,8 @@ class DataAgeChecker {
             ];
         }
 
-        $lastUpdate = strtotime($result['datatimestamp']);
-        $now = time();
+        $lastUpdate = $result['datatimestamp']; //timestamp
+        $now = time(); //timestamp
         $ageSeconds = $now - $lastUpdate;
         $ageMinutes = round($ageSeconds / 60);
 
