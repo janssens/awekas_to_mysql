@@ -13,12 +13,19 @@ function shouldSendNotification($lastTriggered, $cooldown) {
     return (time() - $lastTime) >= $cooldown;
 }
 
+// Function to check if weather data is recent enough
+function isWeatherDataRecent($timestamp, $maxAge) {
+    $dataTime = strtotime($timestamp);
+    $age = time() - $dataTime;
+    return $age <= $maxAge;
+}
+
 try {
     // Initialize Telegram notifier
     $telegram = new TelegramNotifier($db);
 
     // Get latest weather data
-    $stmt = $db->query("SELECT * FROM weather_data ORDER BY datatimestamp DESC LIMIT 1");
+    $stmt = $db->query("SELECT *, datatimestamp as timestamp FROM weather_data ORDER BY datatimestamp DESC LIMIT 1");
     $weatherData = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$weatherData) {
@@ -34,6 +41,12 @@ try {
     foreach ($alerts as $alert) {
         $key = $alert['alert_key'];
         if (!isset($weatherData[$key])) continue;
+
+        // Vérifier que les données sont plus récentes que le cooldown
+        if (!isWeatherDataRecent($weatherData['timestamp'], $alert['notification_cooldown'])) {
+            error_log("Skipping alert check for {$key}: weather data is too old (last update: {$weatherData['timestamp']})");
+            continue;
+        }
 
         $currentValue = floatval($weatherData[$key]);
         $threshold = floatval($alert['threshold_value']);
