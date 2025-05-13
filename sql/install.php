@@ -2,6 +2,9 @@
 
 require_once __DIR__ . '/../config.php';
 
+// Define the SQL directory path
+$sqlDir = __DIR__;
+
 // List of SQL files to execute in order
 $sqlFiles = [
     'create_weather_data_table.sql',
@@ -10,13 +13,18 @@ $sqlFiles = [
     'push_subscriptions_alerts.sql'
 ];
 
-function executeSqlFile($db, $file) {
+function executeSqlFile($db, $sqlDir, $file) {
     echo "Executing $file...\n";
     
     try {
-        $sql = file_get_contents(__DIR__ . '/' . $file);
+        $fullPath = $sqlDir . DIRECTORY_SEPARATOR . $file;
+        if (!file_exists($fullPath)) {
+            throw new Exception("SQL file not found: $fullPath");
+        }
+
+        $sql = file_get_contents($fullPath);
         if ($sql === false) {
-            throw new Exception("Could not read file: $file");
+            throw new Exception("Could not read file: $fullPath");
         }
 
         // Split file into individual statements
@@ -42,10 +50,11 @@ function executeSqlFile($db, $file) {
 }
 
 echo "Starting database installation...\n\n";
+echo "SQL directory: $sqlDir\n\n";
 
 $success = true;
 foreach ($sqlFiles as $file) {
-    if (!executeSqlFile($db, $file)) {
+    if (!executeSqlFile($db, $sqlDir, $file)) {
         $success = false;
         break;
     }
