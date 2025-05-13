@@ -32,17 +32,17 @@ class DataAgeChecker {
         $isStale = $ageSeconds > 3600; // Plus d'une heure
 
         if ($isStale) {
-            $this->notifyIfNeeded($ageMinutes);
+            $this->notifyIfNeeded($ageMinutes,$lastUpdate);
         }
 
         return [
             'is_stale' => $isStale,
-            'last_update' => $result['datatimestamp'],
+            'last_update' => $lastUpdate,
             'age_minutes' => $ageMinutes
         ];
     }
 
-    private function notifyIfNeeded($ageMinutes) {
+    private function notifyIfNeeded($ageMinutes,$lastUpdate) {
         // Vérifier si on a déjà notifié récemment
         if (file_exists($this->lastNotificationFile)) {
             $lastNotification = (int)file_get_contents($this->lastNotificationFile);
@@ -61,7 +61,7 @@ class DataAgeChecker {
         $message = "<b>⚠️ Alerte Station Météo</b>\n\n" .
                   "Aucune donnée reçue depuis {$ageMinutes} minutes.\n" .
                   "Veuillez vérifier la station météo.\n\n" .
-                  "🕒 " . date('d/m/Y H:i:s');
+                  "🕒 " . date('d/m/Y H:i:s', $lastUpdate);
 
         if ($this->telegram->isConfigured()) {
             $this->telegram->sendMessage($message);
