@@ -47,12 +47,34 @@ $measurements = require 'config/measurements.php';
     <style>
         .subscription-toggle {
             cursor: pointer;
+            position: relative;
+            display: inline-block;
+            width: 1em;
+            height: 1em;
         }
         .subscription-toggle.subscribed {
             color: var(--bs-success);
         }
         .subscription-toggle.unsubscribed {
             color: var(--bs-secondary);
+        }
+        .subscription-toggle i {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .subscribed-icon {
+            opacity: 0;
+        }
+        .unsubscribed-icon {
+            opacity: 1;
+        }
+        .subscription-toggle.subscribed .subscribed-icon {
+            opacity: 1;
+        }
+        .subscription-toggle.subscribed .unsubscribed-icon {
+            opacity: 0;
         }
     </style>
 </head>
@@ -130,7 +152,10 @@ $measurements = require 'config/measurements.php';
                                 <td>
                                     <i class="bi bi-bell subscription-toggle unsubscribed" 
                                        data-alert-id="<?php echo $alert['id']; ?>"
-                                       title="Cliquez pour recevoir les notifications"></i>
+                                       title="Cliquez pour recevoir les notifications">
+                                        <i class="bi bi-bell-fill subscribed-icon"></i>
+                                        <i class="bi bi-bell unsubscribed-icon"></i>
+                                    </i>
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
