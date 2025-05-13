@@ -25,7 +25,7 @@ function getStats($db, $measurement, $interval) {
 // Fonction pour obtenir les données pour le graphique
 function getChartData($db, $measurement, $interval, $format) {
     $sql = "SELECT 
-        DATE_FORMAT(datatimestamp, $format) as label,
+        DATE_FORMAT(recorded_at, $format) as label,
         MIN($measurement) as min_value,
         MAX($measurement) as max_value,
         AVG($measurement) as avg_value
