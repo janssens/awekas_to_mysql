@@ -5,7 +5,7 @@ require_once 'config.php';
 $measurements = require_once 'config/measurements.php';
 
 // Fonction pour calculer les statistiques pour une période donnée
-function getStats($db, $measurement, $period) {
+function getStats($db, $measurement, $interval) {
     $sql = "SELECT 
         MIN(datatimestamp) as start_date,
         MAX(datatimestamp) as end_date,
@@ -14,7 +14,7 @@ function getStats($db, $measurement, $period) {
         AVG($measurement) as avg_value,
         COUNT(*) as total_readings
     FROM weather_data 
-    WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL $period)
+    WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL $interval)
     AND $measurement IS NOT NULL";
 
     $stmt = $db->prepare($sql);
@@ -23,20 +23,20 @@ function getStats($db, $measurement, $period) {
 }
 
 // Fonction pour obtenir les données pour le graphique
-function getChartData($db, $measurement, $period, $interval) {
+function getChartData($db, $measurement, $interval, $format) {
     $sql = "SELECT 
-        DATE_FORMAT(datatimestamp, ?) as label,
+        DATE_FORMAT(datatimestamp, $format) as label,
         MIN($measurement) as min_value,
         MAX($measurement) as max_value,
         AVG($measurement) as avg_value
     FROM weather_data 
-    WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL $period)
+    WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL $interval)
     AND $measurement IS NOT NULL
     GROUP BY label
     ORDER BY datatimestamp";
 
     $stmt = $db->prepare($sql);
-    $stmt->execute([$interval]);
+    $stmt->execute([]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
