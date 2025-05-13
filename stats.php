@@ -34,10 +34,14 @@ function getChartData($db, $measurement, $interval, $format) {
     AND $measurement IS NOT NULL
     GROUP BY label
     ORDER BY datatimestamp";
-
-    $stmt = $db->prepare($sql);
-    $stmt->execute([]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    try {
+        $stmt = $db->prepare($sql);
+        $stmt->execute([]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log("SQL Error in getChartData: " . $e->getMessage() . "\nSQL: " . $sql);
+        return [];
+    }
 }
 
 // Sélectionner la mesure à afficher (par défaut: température)
