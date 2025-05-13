@@ -44,6 +44,17 @@ $measurements = require 'config/measurements.php';
     <title>Gestion des Alertes Météo</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .subscription-toggle {
+            cursor: pointer;
+        }
+        .subscription-toggle.subscribed {
+            color: var(--bs-success);
+        }
+        .subscription-toggle.unsubscribed {
+            color: var(--bs-secondary);
+        }
+    </style>
 </head>
 <body class="bg-light">
     <?php require_once 'header.php'; ?>
@@ -51,9 +62,14 @@ $measurements = require 'config/measurements.php';
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h2">Gestion des Alertes Météo</h1>
-            <a href="edit_alert.php" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Nouvelle Alerte
-            </a>
+            <div>
+                <button id="notifications" class="btn btn-outline-primary me-2">
+                    <i class="bi bi-bell"></i> Activer les notifications
+                </button>
+                <a href="edit_alert.php" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Nouvelle Alerte
+                </a>
+            </div>
         </div>
 
         <?php if (isset($_GET['message'])): ?>
@@ -81,6 +97,7 @@ $measurements = require 'config/measurements.php';
                             <th>Message</th>
                             <th>Délai</th>
                             <th>Statut</th>
+                            <th>Notifications</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -111,6 +128,11 @@ $measurements = require 'config/measurements.php';
                                     </form>
                                 </td>
                                 <td>
+                                    <i class="bi bi-bell subscription-toggle unsubscribed" 
+                                       data-alert-id="<?php echo $alert['id']; ?>"
+                                       title="Cliquez pour recevoir les notifications"></i>
+                                </td>
+                                <td>
                                     <div class="btn-group btn-group-sm">
                                         <a href="edit_alert.php?id=<?php echo $alert['id']; ?>" 
                                            class="btn btn-outline-primary">
@@ -129,7 +151,7 @@ $measurements = require 'config/measurements.php';
                         <?php endforeach; ?>
                         <?php if (empty($alerts)): ?>
                             <tr>
-                                <td colspan="7" class="text-center py-4 text-muted">
+                                <td colspan="8" class="text-center py-4 text-muted">
                                     Aucune alerte configurée
                                 </td>
                             </tr>
@@ -139,6 +161,7 @@ $measurements = require 'config/measurements.php';
             </div>
         </div>
     </div>
+
     <script>
     const vapidPublicKey = '<?php echo VAPID_PUBLIC_KEY; ?>';
     </script>

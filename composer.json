@@ -1,6 +1,16 @@
 {
+    "name": "meteo_farm/weather_station",
+    "description": "Station météo avec alertes et notifications",
+    "type": "project",
     "require": {
-        "minishlink/web-push": "^8.0",
-        "vlucas/phpdotenv": "^5.5"
+        "php": ">=7.4",
+        "vlucas/phpdotenv": "^5.5",
+        "minishlink/web-push": "^7.0"
+    },
+    "scripts": {
+        "install-db": "php sql/install.php",
+        "post-install-cmd": [
+            "@php -r \"file_exists('.env') || copy('.env.dist', '.env');\""
+        ]
     }
 } 

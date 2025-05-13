@@ -1,8 +1,73 @@
+let pushSubscription = null;
+let subscriptionId = null;
+
 // Check if push notifications are supported
 if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.log('Push notifications not supported');
 } else {
-    initPushNotifications();
+    const button = document.getElementById("notifications");
+    button.addEventListener("click", () => {
+        Notification.requestPermission().then((result) => {
+            if (result === "granted") {
+                console.log('Notification permission granted');
+                initPushNotifications();
+            } else {
+                console.log('Notification permission denied');
+            }
+        });
+    });
+
+    // Add click handlers for subscription toggles
+    document.querySelectorAll('.subscription-toggle').forEach(toggle => {
+        toggle.addEventListener('click', async () => {
+            if (!pushSubscription || !subscriptionId) {
+                const permission = await Notification.requestPermission();
+                if (permission === "granted") {
+                    await initPushNotifications();
+                } else {
+                    console.log('Notification permission denied');
+                    return;
+                }
+            }
+            await toggleAlertSubscription(toggle);
+        });
+    });
+}
+
+async function toggleAlertSubscription(toggle) {
+    try {
+        const alertId = toggle.dataset.alertId;
+        
+        const response = await fetch('/toggle-alert-subscription.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                subscription_id: subscriptionId,
+                alert_id: alertId
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to toggle subscription');
+        }
+
+        const result = await response.json();
+        
+        if (result.status === 'subscribed') {
+            toggle.classList.remove('unsubscribed');
+            toggle.classList.add('subscribed');
+            toggle.title = 'Cliquez pour désactiver les notifications';
+        } else {
+            toggle.classList.remove('subscribed');
+            toggle.classList.add('unsubscribed');
+            toggle.title = 'Cliquez pour recevoir les notifications';
+        }
+    } catch (err) {
+        console.error('Failed to toggle subscription:', err);
+        alert('Erreur lors de la modification de la souscription');
+    }
 }
 
 async function initPushNotifications() {
@@ -21,25 +86,17 @@ async function initPushNotifications() {
         // Wait for the service worker to be ready
         await navigator.serviceWorker.ready;
         console.log('Service Worker is ready');
-
-        // Check notification permission
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-            console.log('Notification permission denied');
-            return;
-        }
-        console.log('Notification permission granted');
-
-        // Check for existing subscription
-        let subscription = await registration.pushManager.getSubscription();
         
-        if (!subscription) {
+        // Check for existing subscription
+        pushSubscription = await registration.pushManager.getSubscription();
+        
+        if (!pushSubscription) {
             // Convert VAPID key
             const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
             
             try {
                 // Subscribe to push notifications
-                subscription = await registration.pushManager.subscribe({
+                pushSubscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: applicationServerKey
                 });
@@ -52,9 +109,9 @@ async function initPushNotifications() {
 
         // Prepare subscription data
         const subscriptionData = {
-            endpoint: subscription.endpoint,
-            publicKey: btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh')))),
-            authToken: btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth'))))
+            endpoint: pushSubscription.endpoint,
+            publicKey: btoa(String.fromCharCode.apply(null, new Uint8Array(pushSubscription.getKey('p256dh')))),
+            authToken: btoa(String.fromCharCode.apply(null, new Uint8Array(pushSubscription.getKey('auth'))))
         };
 
         // Send subscription to server
@@ -71,7 +128,14 @@ async function initPushNotifications() {
         }
 
         const result = await response.json();
+        subscriptionId = result.subscription_id;
         console.log('Subscription saved successfully:', result);
+
+        // Update UI
+        const button = document.getElementById("notifications");
+        button.classList.remove('btn-outline-primary');
+        button.classList.add('btn-success');
+        button.innerHTML = '<i class="bi bi-bell-fill"></i> Notifications activées';
 
     } catch (err) {
         console.error('Push notification setup failed:', err);

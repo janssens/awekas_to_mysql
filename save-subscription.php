@@ -19,8 +19,9 @@ try {
     // Check if subscription already exists
     $stmt = $db->prepare("SELECT id FROM push_subscriptions WHERE endpoint = ?");
     $stmt->execute([$data['endpoint']]);
+    $subscription = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if ($stmt->fetch()) {
+    if ($subscription) {
         // Update existing subscription
         $stmt = $db->prepare("UPDATE push_subscriptions SET 
             public_key = ?, 
@@ -32,6 +33,7 @@ try {
             $data['authToken'],
             $data['endpoint']
         ]);
+        $subscriptionId = $subscription['id'];
     } else {
         // Insert new subscription
         $stmt = $db->prepare("INSERT INTO push_subscriptions 
@@ -42,11 +44,15 @@ try {
             $data['publicKey'],
             $data['authToken']
         ]);
+        $subscriptionId = $db->lastInsertId();
     }
 
     http_response_code(200);
-    echo json_encode(['status' => 'success']);
+    echo json_encode([
+        'status' => 'success',
+        'subscription_id' => $subscriptionId
+    ]);
 } catch (Exception $e) {
     http_response_code(500);
-    die('Error saving subscription');
+    die('Error saving subscription: ' . $e->getMessage());
 } 
