@@ -23,7 +23,7 @@ $dataStatus = $dataChecker->checkDataAge();
         <i class="bi bi-exclamation-triangle-fill"></i>
         <?php if ($dataStatus['last_update']): ?>
             Dernière mise à jour il y a <?php echo $dataStatus['age_minutes']; ?> minutes
-            (<?php echo date('d/m/Y H:i', strtotime($dataStatus['last_update'])); ?>)
+            (<?php echo date('d/m/Y H:i', $dataStatus['last_update']); ?>)
         <?php else: ?>
             Aucune donnée météo disponible
         <?php endif; ?>
