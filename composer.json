@@ -5,7 +5,7 @@
     "require": {
         "php": ">=7.4",
         "vlucas/phpdotenv": "^5.5",
-        "minishlink/web-push": "^7.0"
+        "minishlink/web-push": "^8.0"
     },
     "scripts": {
         "install-db": "php sql/install.php",
