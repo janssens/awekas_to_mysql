@@ -22,6 +22,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <i class="bi bi-bell"></i> Alertes
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/telegram_config.php">Configuration Telegram</a>
+                </li>
             </ul>
         </div>
     </div>

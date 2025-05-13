@@ -1,6 +1,7 @@
 <?php
 require 'vendor/autoload.php';
 require_once 'config.php';
+require_once 'includes/TelegramNotifier.php';
 
 use Minishlink\WebPush\WebPush;
 use Minishlink\WebPush\Subscription;
@@ -13,6 +14,9 @@ function shouldSendNotification($lastTriggered, $cooldown) {
 }
 
 try {
+    // Initialize Telegram notifier
+    $telegram = new TelegramNotifier($db);
+
     // Get latest weather data
     $stmt = $db->query("SELECT * FROM weather_data ORDER BY datatimestamp DESC LIMIT 1");
     $weatherData = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -47,10 +51,16 @@ try {
             // Update last_triggered_at
             $stmt = $db->prepare("UPDATE weather_alerts SET last_triggered_at = NOW() WHERE id = ?");
             $stmt->execute([$alert['id']]);
+
+            // Send Telegram notification
+            if ($telegram->isConfigured()) {
+                $message = $telegram->formatAlertMessage($alert, $currentValue);
+                $telegram->sendMessage($message);
+            }
         }
     }
 
-    // If we have triggered alerts, send notifications
+    // If we have triggered alerts, send web push notifications
     if (!empty($triggeredAlerts)) {
         // Get all subscriptions
         $stmt = $db->query("SELECT * FROM push_subscriptions");
