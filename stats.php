@@ -14,7 +14,7 @@ function getStats($db, $measurement, $period) {
         AVG($measurement) as avg_value,
         COUNT(*) as total_readings
     FROM weather_data 
-    WHERE datatimestamp >= DATE_SUB(NOW(), INTERVAL ? $period)
+    WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL ? $period)
     AND $measurement IS NOT NULL";
 
     $stmt = $db->prepare($sql);
@@ -30,7 +30,7 @@ function getChartData($db, $measurement, $period, $interval) {
         MAX($measurement) as max_value,
         AVG($measurement) as avg_value
     FROM weather_data 
-    WHERE datatimestamp >= DATE_SUB(NOW(), INTERVAL ? $period)
+    WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL ? $period)
     AND $measurement IS NOT NULL
     GROUP BY label
     ORDER BY datatimestamp";
