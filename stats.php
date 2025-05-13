@@ -49,10 +49,10 @@ if (!isset($measurements[$selectedMeasurement])) {
 // Sélectionner la période (par défaut: jour)
 $selectedPeriod = $_GET['period'] ?? 'day';
 $periods = [
-    'day' => ['label' => 'Dernières 24h', 'format' => '%H:00', 'interval' => 'HOUR'],
-    'week' => ['label' => '7 derniers jours', 'format' => '%d/%m', 'interval' => 'DAY'],
-    'month' => ['label' => '30 derniers jours', 'format' => '%d/%m', 'interval' => 'DAY'],
-    'year' => ['label' => '12 derniers mois', 'format' => '%m/%Y', 'interval' => 'MONTH']
+    'day' => ['label' => 'Dernières 24h', 'format' => '%H:00', 'interval' => '24 HOURS'],
+    'week' => ['label' => '7 derniers jours', 'format' => '%d/%m', 'interval' => '7 DAYS'],
+    'month' => ['label' => '30 derniers jours', 'format' => '%d/%m', 'interval' => '30 DAYS'],
+    'year' => ['label' => '12 derniers mois', 'format' => '%m/%Y', 'interval' => '12 MONTHS']
 ];
 
 // Récupérer les statistiques
