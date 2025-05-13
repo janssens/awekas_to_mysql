@@ -95,7 +95,7 @@ async function toggleAlertSubscription(toggle) {
     try {
         const alertId = toggle.dataset.alertId;
         
-        const response = await fetch('/toggle-alert-subscription.php', {
+        const response = await fetch('./toggle-alert-subscription.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
