@@ -54,7 +54,7 @@ if (!isset($measurements[$selectedMeasurement])) {
 $selectedPeriod = $_GET['period'] ?? 'day';
 $periods = [
     'day' => ['label' => 'Dernières 24h', 'format' => '%H:00', 'interval' => '1 DAY'],
-    'week' => ['label' => '7 derniers jours', 'format' => '%d/%m', 'interval' => '7 DAY'],
+    'week' => ['label' => '7 derniers jours', 'format' => '%H:00 %d/%m', 'interval' => '7 DAY'],
     'month' => ['label' => '30 derniers jours', 'format' => '%d/%m', 'interval' => '30 DAY'],
     'year' => ['label' => '12 derniers mois', 'format' => '%m/%Y', 'interval' => '12 MONTH']
 ];
