@@ -30,13 +30,13 @@ function getChartData($db, $measurement, $period, $interval) {
         MAX($measurement) as max_value,
         AVG($measurement) as avg_value
     FROM weather_data 
-    WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL ? $period)
+    WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL $period)
     AND $measurement IS NOT NULL
     GROUP BY label
     ORDER BY datatimestamp";
 
     $stmt = $db->prepare($sql);
-    $stmt->execute([$interval, '1']);
+    $stmt->execute([$interval]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
