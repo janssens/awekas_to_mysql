@@ -25,8 +25,7 @@ try {
         // Update existing subscription
         $stmt = $db->prepare("UPDATE push_subscriptions SET 
             public_key = ?, 
-            auth_token = ?,
-            updated_at = NOW() 
+            auth_token = ?
             WHERE endpoint = ?");
         $stmt->execute([
             $data['publicKey'],
@@ -37,8 +36,8 @@ try {
     } else {
         // Insert new subscription
         $stmt = $db->prepare("INSERT INTO push_subscriptions 
-            (endpoint, public_key, auth_token) 
-            VALUES (?, ?, ?)");
+            (endpoint, public_key, auth_token, created_at) 
+            VALUES (?, ?, ?, NOW())");
         $stmt->execute([
             $data['endpoint'],
             $data['publicKey'],
