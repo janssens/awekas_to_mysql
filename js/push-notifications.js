@@ -115,7 +115,7 @@ async function initPushNotifications() {
         };
 
         // Send subscription to server
-        const response = await fetch('/save-subscription.php', {
+        const response = await fetch('./save-subscription.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
