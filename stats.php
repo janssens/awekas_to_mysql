@@ -144,8 +144,8 @@ $chartData = getChartData(
                     <div class="card-body">
                         <h3 class="card-title h5">Informations</h3>
                         <ul class="list-unstyled mb-0">
-                            <li>Période : du <?php echo date('d/m/Y H:i', strtotime($stats['start_date'])); ?> 
-                                au <?php echo date('d/m/Y H:i', strtotime($stats['end_date'])); ?></li>
+                            <li>Période : du <?php echo date('d/m/Y H:i', $stats['start_date']); ?> 
+                                au <?php echo date('d/m/Y H:i', $stats['end_date']); ?></li>
                             <li>Nombre de mesures : <?php echo $stats['total_readings']; ?></li>
                         </ul>
                     </div>
