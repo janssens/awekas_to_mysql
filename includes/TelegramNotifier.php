@@ -5,6 +5,7 @@ class TelegramNotifier {
     private $channelId;
     private $isActive;
     private $db;
+    private $lastError;
 
     public function __construct($db) {
         $this->db = $db;
@@ -28,6 +29,10 @@ class TelegramNotifier {
         return $this->isActive && !empty($this->botToken) && !empty($this->channelId);
     }
 
+    public function getLastError() {
+        return $this->lastError;
+    }
+
     public function testConfiguration() {
         if (!$this->isConfigured()) {
             return [
@@ -49,37 +54,54 @@ class TelegramNotifier {
         } else {
             return [
                 'success' => false,
-                'message' => 'Erreur lors de l\'envoi du message de test. Vérifiez le token du bot et l\'ID du canal.'
+                'message' => 'Erreur lors de l\'envoi du message de test : ' . $this->getLastError()
             ];
         }
     }
 
     public function sendMessage($message) {
         if (!$this->isConfigured()) {
+            $this->lastError = "Configuration incomplète";
             return false;
         }
 
         $url = "https://api.telegram.org/bot{$this->botToken}/sendMessage";
         
+        // Préparation des données au format application/x-www-form-urlencoded
         $data = [
             'chat_id' => $this->channelId,
             'text' => $message,
             'parse_mode' => 'HTML'
         ];
 
-        $options = [
-            'http' => [
-                'method' => 'POST',
-                'header' => 'Content-Type: application/x-www-form-urlencoded',
-                'content' => http_build_query($data)
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => http_build_query($data),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/x-www-form-urlencoded'
             ]
-        ];
+        ]);
 
-        $context = stream_context_create($options);
-        $result = file_get_contents($url, false, $context);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
 
-        if ($result === false) {
-            error_log("Erreur lors de l'envoi du message Telegram");
+        if ($response === false) {
+            $this->lastError = "Erreur CURL : " . $curlError;
+            error_log("Erreur Telegram (CURL) : " . $curlError);
+            return false;
+        }
+
+        $result = json_decode($response, true);
+        
+        if (!isset($result['ok']) || !$result['ok']) {
+            $errorMsg = isset($result['description']) ? $result['description'] : 'Erreur inconnue';
+            $this->lastError = "Erreur Telegram : " . $errorMsg;
+            error_log("Erreur Telegram (API) : " . $errorMsg);
             return false;
         }
 
