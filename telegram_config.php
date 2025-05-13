@@ -80,6 +80,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configuration Telegram</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         #testResult {
             display: none;
@@ -141,7 +142,9 @@ try {
                             <div class="alert alert-info" role="alert" id="testResult"></div>
 
                             <div class="d-flex justify-content-between align-items-center">
-                                <a href="alerts.php" class="btn btn-outline-secondary">Retour aux alertes</a>
+                                <a href="alerts.php" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> Retour aux alertes
+                                </a>
                                 <div>
                                     <button type="button" class="btn btn-info me-2" id="testButton">
                                         <i class="bi bi-send"></i> Tester la configuration
