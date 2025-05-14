@@ -1,5 +1,6 @@
 <?php
 require_once 'config.php';
+require_once 'includes/DateFormatter.php';
 
 // Load measurements configuration
 $measurements = require_once 'config/measurements.php';
@@ -66,7 +67,7 @@ function formatDateTime($timestamp) {
         <div class="weather-card p-4">
             <h1 class="h3 mb-4">Dernières mesures météorologiques</h1>
             <p class="update-time mb-4">
-                Dernière mise à jour : <?php echo formatDateTime($data['recorded_at']); ?>
+                Dernière mise à jour : <?php echo DateFormatter::formatFrench($data['recorded_at']); ?>
                 <?php if (defined('TIMEZONE')): ?>
                     (<?php echo TIMEZONE; ?>)
                 <?php endif; ?>

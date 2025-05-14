@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/DateFormatter.php';
 
 class DataAgeChecker {
     private $db;
@@ -32,7 +33,7 @@ class DataAgeChecker {
         $isStale = $ageSeconds > 3600; // Plus d'une heure
 
         if ($isStale) {
-            $this->notifyIfNeeded($ageMinutes,$lastUpdate);
+            $this->notifyIfNeeded($ageMinutes, $lastUpdate);
         }
 
         return [
@@ -42,7 +43,7 @@ class DataAgeChecker {
         ];
     }
 
-    private function notifyIfNeeded($ageMinutes,$lastUpdate) {
+    private function notifyIfNeeded($ageMinutes, $lastUpdate) {
         // Vérifier si on a déjà notifié récemment
         if (file_exists($this->lastNotificationFile)) {
             $lastNotification = (int)file_get_contents($this->lastNotificationFile);
@@ -61,7 +62,7 @@ class DataAgeChecker {
         $message = "<b>⚠️ Alerte Station Météo</b>\n\n" .
                   "Aucune donnée reçue depuis {$ageMinutes} minutes.\n" .
                   "Veuillez vérifier la station météo.\n\n" .
-                  "🕒 " . date('d/m/Y H:i:s', $lastUpdate);
+                  "Dernière mise à jour : " . DateFormatter::formatFrench($lastUpdate);
 
         if ($this->telegram->isConfigured()) {
             $this->telegram->sendMessage($message);

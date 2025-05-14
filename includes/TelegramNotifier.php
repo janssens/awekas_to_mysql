@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/DateFormatter.php';
 
 class TelegramNotifier {
     private $botToken;
@@ -44,7 +45,7 @@ class TelegramNotifier {
         $testMessage = "<b>🔧 Test de Configuration</b>\n\n" .
                       "La configuration de votre bot Telegram est fonctionnelle.\n" .
                       "Vous recevrez les alertes météo sur ce canal.\n\n" .
-                      "🕒 " . date('d/m/Y H:i:s');
+                      "🕒 " . DateFormatter::formatFrench(time());
 
         if ($this->sendMessage($testMessage)) {
             return [
@@ -120,6 +121,6 @@ class TelegramNotifier {
                "📊 <b>{$measurement['name']}</b>\n" .
                "Valeur actuelle : {$currentValue} {$measurement['unit']}\n" .
                "Seuil {$condition} : {$alert['threshold_value']} {$measurement['unit']}\n" .
-               "🕒 " . date('d/m/Y H:i:s');
+               "🕒 " . DateFormatter::formatFrench(time());
     }
 } 
