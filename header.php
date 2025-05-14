@@ -57,11 +57,15 @@ $dataStatus = $dataChecker->checkDataAge();
                 <ul class="navbar-nav ms-auto">
                     <?php if (isAuthenticated()): ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="/logout.php">Déconnexion</a>
+                            <a class="nav-link" href="./logout.php">
+                                <i class="bi bi-box-arrow-right"></i> Déconnexion
+                            </a>
                         </li>
                     <?php else: ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="/login.php">Connexion</a>
+                            <a class="nav-link" href="./login.php">
+                                <i class="bi bi-box-arrow-in-right"></i> Connexion
+                            </a>
                         </li>
                     <?php endif; ?>
                 </ul>
