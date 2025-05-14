@@ -14,7 +14,7 @@ function requireAuth() {
 
 function login($username, $password) {
     if ($username !== $_ENV['ADMIN_USERNAME']) {
-        return 'username';
+        return "username: $username, expected: " . $_ENV['ADMIN_USERNAME'];
     }
     
     if (!password_verify($password, $_ENV['ADMIN_PASSWORD_HASH'])) {
