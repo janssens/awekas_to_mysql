@@ -1,4 +1,7 @@
 <?php
+require_once 'includes/auth.php';
+requireAuth();
+
 require_once 'config.php';
 
 // Handle delete request
