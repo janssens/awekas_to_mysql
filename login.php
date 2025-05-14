@@ -7,11 +7,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
     
-    if (login($username, $password) === true) {
+    $result = login($username, $password);
+    if ($result === true) {
         header('Location: ./index.php');
         exit;
+    } else if (is_string($result)) {
+        $error = $result;
     } else {
-        $error = 'Identifiants invalides (' . login($username, $password) . ')';
+        $error = 'Identifiants invalides';
     }
 }
 

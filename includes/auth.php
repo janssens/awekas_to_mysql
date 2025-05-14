@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../config.php';
 session_start();
 
 function isAuthenticated() {
@@ -13,12 +14,17 @@ function requireAuth() {
 }
 
 function login($username, $password) {
+    if (!isset($_ENV['ADMIN_USERNAME']) || !isset($_ENV['ADMIN_PASSWORD_HASH'])) {
+        error_log('Configuration d\'authentification manquante dans le fichier .env');
+        return 'Configuration d\'authentification non définie';
+    }
+
     if ($username !== $_ENV['ADMIN_USERNAME']) {
-        return "username: $username, expected: " . $_ENV['ADMIN_USERNAME'];
+        return false;
     }
     
     if (!password_verify($password, $_ENV['ADMIN_PASSWORD_HASH'])) {
-        return 'password'; 
+        return false;
     }
 
     $_SESSION['authenticated'] = true;
