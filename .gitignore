@@ -1,1 +1,6 @@
 .env
+.htaccess
+composer.lock
+data/
+error_log
+vendor/
