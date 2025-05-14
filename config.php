@@ -23,7 +23,9 @@ function loadEnv($path = '.env') {
             $value = $matches[1];
         }
 
-        define($name, $value);
+        $_ENV[$name] = $value;
+        putenv("$name=$value");
+        define($name, $value); // Keep define for backward compatibility
     }
 }
 
@@ -31,15 +33,19 @@ function loadEnv($path = '.env') {
 loadEnv();
 
 // Set timezone
-if (defined('TIMEZONE')) {
-    date_default_timezone_set(TIMEZONE);
+if (isset($_ENV['TIMEZONE'])) {
+    date_default_timezone_set($_ENV['TIMEZONE']);
 } else {
     date_default_timezone_set('Europe/Paris'); // Default timezone
 }
 
 // Create database connection
 try {
-    $db = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
+    $db = new PDO(
+        "mysql:host=" . $_ENV['DB_HOST'] . ";dbname=" . $_ENV['DB_NAME'], 
+        $_ENV['DB_USER'], 
+        $_ENV['DB_PASS']
+    );
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch(PDOException $e) {
     die("Connection failed: " . $e->getMessage() . "\n");
