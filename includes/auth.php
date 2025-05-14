@@ -7,21 +7,26 @@ function isAuthenticated() {
 
 function requireAuth() {
     if (!isAuthenticated()) {
-        header('Location: /login.php');
+        header('Location: ./login.php');
         exit;
     }
 }
 
 function login($username, $password) {
-    if ($username === $_ENV['ADMIN_USERNAME'] && password_verify($password, $_ENV['ADMIN_PASSWORD_HASH'])) {
-        $_SESSION['authenticated'] = true;
-        return true;
+    if ($username !== $_ENV['ADMIN_USERNAME']) {
+        return 'username';
     }
-    return false;
+    
+    if (!password_verify($password, $_ENV['ADMIN_PASSWORD_HASH'])) {
+        return 'password'; 
+    }
+
+    $_SESSION['authenticated'] = true;
+    return true;
 }
 
 function logout() {
     session_destroy();
-    header('Location: /login.php');
+    header('Location: ./login.php');
     exit;
 } 

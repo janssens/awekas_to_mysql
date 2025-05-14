@@ -7,16 +7,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
     
-    if (login($username, $password)) {
-        header('Location: /index.php');
+    if (login($username, $password) === true) {
+        header('Location: ./index.php');
         exit;
     } else {
-        $error = 'Identifiants invalides';
+        $error = 'Identifiants invalides (' . login($username, $password) . ')';
     }
 }
 
 if (isAuthenticated()) {
-    header('Location: /index.php');
+    header('Location: ./index.php');
     exit;
 }
 ?>
