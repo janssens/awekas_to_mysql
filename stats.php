@@ -4,45 +4,80 @@ require_once 'config.php';
 // Load measurements configuration
 $measurements = require_once 'config/measurements.php';
 
-// Fonction pour calculer les statistiques pour une période donnée
-function getStats($db, $measurement, $interval) {
-    $sql = "SELECT 
-        MIN(datatimestamp) as start_date,
-        MAX(datatimestamp) as end_date,
-        MIN($measurement) as min_value,
-        MAX($measurement) as max_value,
-        AVG($measurement) as avg_value,
-        COUNT(*) as total_readings
-    FROM weather_data 
-    WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL $interval)
-    AND $measurement IS NOT NULL";
+// Sélectionner les mesures à afficher
+$selectedMeasurements = [];
+if (isset($_GET['measurements']) && is_array($_GET['measurements'])) {
+    foreach ($_GET['measurements'] as $key) {
+        if (isset($measurements[$key])) {
+            $selectedMeasurements[$key] = $measurements[$key];
+        }
+    }
+}
+// Si aucune mesure n'est sélectionnée, utiliser la température par défaut
+if (empty($selectedMeasurements)) {
+    $selectedMeasurements['temperature'] = $measurements['temperature'];
+}
 
-    $stmt = $db->prepare($sql);
-    $stmt->execute([]);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
+// Sélectionner la période (par défaut: jour)
+$selectedPeriod = $_GET['period'] ?? 'day';
+$periods = [
+    'live' => ['label' => 'Live (6h)', 'format' => '%H:%i', 'interval' => '6 HOUR'],
+    'day' => ['label' => 'Dernières 24h', 'format' => '%H:00', 'interval' => '1 DAY'],
+    'week' => ['label' => '7 derniers jours', 'format' => '%H:00 %d/%m', 'interval' => '7 DAY'],
+    'month' => ['label' => '30 derniers jours', 'format' => '%d/%m', 'interval' => '30 DAY'],
+    'year' => ['label' => '12 derniers mois', 'format' => '%m/%Y', 'interval' => '12 MONTH']
+];
+
+// Fonction pour calculer les statistiques pour une période donnée
+function getStats($db, $measurements, $interval) {
+    $stats = [];
+    foreach ($measurements as $key => $info) {
+        $sql = "SELECT 
+            MIN(datatimestamp) as start_date,
+            MAX(datatimestamp) as end_date,
+            MIN($key) as min_value,
+            MAX($key) as max_value,
+            AVG($key) as avg_value,
+            COUNT(*) as total_readings
+        FROM weather_data 
+        WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL $interval)
+        AND $key IS NOT NULL";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute([]);
+        $stats[$key] = $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    return $stats;
 }
 
 // Fonction pour obtenir les données pour le graphique
-function getChartData($db, $measurement, $interval, $format) {
-    // Pour la période "live", on ne fait pas de groupement
+function getChartData($db, $measurements, $interval, $format) {
+    $measurementList = implode(', ', array_map(function($key) {
+        return "$key as {$key}_value";
+    }, array_keys($measurements)));
+
     if ($interval === '6 HOUR') {
         $sql = "SELECT 
             DATE_FORMAT(recorded_at, '$format') as label,
-            $measurement as value,
-            datatimestamp as timestamp
+            datatimestamp as timestamp,
+            $measurementList
         FROM weather_data 
         WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL $interval)
-        AND $measurement IS NOT NULL
+        AND " . implode(' IS NOT NULL AND ', array_keys($measurements)) . " IS NOT NULL
         ORDER BY datatimestamp";
     } else {
+        $aggregations = [];
+        foreach (array_keys($measurements) as $key) {
+            $aggregations[] = "MIN($key) as {$key}_min";
+            $aggregations[] = "MAX($key) as {$key}_max";
+            $aggregations[] = "AVG($key) as {$key}_avg";
+        }
         $sql = "SELECT 
             DATE_FORMAT(recorded_at, '$format') as label,
-            MIN($measurement) as min_value,
-            MAX($measurement) as max_value,
-            AVG($measurement) as avg_value
+            " . implode(', ', $aggregations) . "
         FROM weather_data 
         WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL $interval)
-        AND $measurement IS NOT NULL
+        AND " . implode(' IS NOT NULL AND ', array_keys($measurements)) . " IS NOT NULL
         GROUP BY label
         ORDER BY datatimestamp";
     }
@@ -57,31 +92,29 @@ function getChartData($db, $measurement, $interval, $format) {
     }
 }
 
-// Sélectionner la mesure à afficher (par défaut: température)
-$selectedMeasurement = $_GET['measurement'] ?? 'temperature';
-if (!isset($measurements[$selectedMeasurement])) {
-    $selectedMeasurement = 'temperature';
-}
-
-// Sélectionner la période (par défaut: jour)
-$selectedPeriod = $_GET['period'] ?? 'day';
-$periods = [
-    'live' => ['label' => 'Live (6h)', 'format' => '%H:%i', 'interval' => '6 HOUR'],
-    'day' => ['label' => 'Dernières 24h', 'format' => '%H:00', 'interval' => '1 DAY'],
-    'week' => ['label' => '7 derniers jours', 'format' => '%H:00 %d/%m', 'interval' => '7 DAY'],
-    'month' => ['label' => '30 derniers jours', 'format' => '%d/%m', 'interval' => '30 DAY'],
-    'year' => ['label' => '12 derniers mois', 'format' => '%m/%Y', 'interval' => '12 MONTH']
-];
-
-// Récupérer les statistiques
-$stats = getStats($db, $selectedMeasurement, $periods[$selectedPeriod]['interval']);
-
-// Récupérer les données pour le graphique
+// Récupérer les statistiques et les données
+$stats = getStats($db, $selectedMeasurements, $periods[$selectedPeriod]['interval']);
 $chartData = getChartData(
     $db, 
-    $selectedMeasurement, 
+    $selectedMeasurements, 
     $periods[$selectedPeriod]['interval'],
     $periods[$selectedPeriod]['format']
+);
+
+// Générer des couleurs distinctes pour chaque mesure
+$colors = [
+    'rgb(40, 167, 69)',    // vert
+    'rgb(220, 53, 69)',    // rouge
+    'rgb(0, 123, 255)',    // bleu
+    'rgb(255, 193, 7)',    // jaune
+    'rgb(111, 66, 193)',   // violet
+    'rgb(23, 162, 184)',   // cyan
+    'rgb(255, 127, 80)',   // corail
+    'rgb(128, 0, 128)',    // pourpre
+];
+$measurementColors = array_combine(
+    array_keys($selectedMeasurements),
+    array_slice($colors, 0, count($selectedMeasurements))
 );
 
 ?>
@@ -121,10 +154,6 @@ $chartData = getChartData(
                 font-size: 1.25rem;
             }
         }
-        .measurement-select {
-            max-width: 100%;
-            width: 300px;
-        }
         #measurementChart {
             min-height: 300px;
             max-height: 400px;
@@ -142,15 +171,27 @@ $chartData = getChartData(
             display: flex;
             flex-wrap: wrap;
             gap: 1rem;
-            align-items: center;
+            align-items: start;
+        }
+        .measurements-select {
+            flex: 1;
+            min-width: 250px;
+            max-width: 400px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+        }
+        .measurements-select .form-check {
+            margin-bottom: 0.25rem;
         }
         @media (max-width: 576px) {
             .stats-controls {
                 flex-direction: column;
                 align-items: stretch;
             }
-            .measurement-select {
-                width: 100%;
+            .measurements-select {
+                max-width: none;
             }
             .btn-group {
                 order: -1;
@@ -164,67 +205,81 @@ $chartData = getChartData(
     <div class="container py-4">
         <div class="stats-header">
             <h1 class="h2">Statistiques Météo</h1>
-            <div class="stats-controls">
-                <select class="form-select measurement-select" onchange="window.location.href='?measurement=' + this.value + '&period=<?php echo $selectedPeriod; ?>'">
+            <form class="stats-controls" method="get" id="statsForm">
+                <div class="measurements-select">
+                    <div class="mb-2">Sélectionner les mesures :</div>
                     <?php foreach ($measurements as $key => $info): ?>
-                        <option value="<?php echo $key; ?>" <?php echo $selectedMeasurement === $key ? 'selected' : ''; ?>>
-                            <?php echo $info['name']; ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <div class="btn-group">
-                    <?php foreach ($periods as $key => $period): ?>
-                        <a href="?measurement=<?php echo $selectedMeasurement; ?>&period=<?php echo $key; ?>" 
-                           class="btn btn-outline-primary <?php echo $selectedPeriod === $key ? 'active' : ''; ?>">
-                            <?php echo $period['label']; ?>
-                        </a>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="measurements[]" 
+                                   value="<?php echo $key; ?>" id="check_<?php echo $key; ?>"
+                                   <?php echo isset($selectedMeasurements[$key]) ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="check_<?php echo $key; ?>">
+                                <?php echo $info['name']; ?>
+                            </label>
+                        </div>
                     <?php endforeach; ?>
                 </div>
-            </div>
+                <div class="btn-group">
+                    <?php foreach ($periods as $key => $period): ?>
+                        <input type="radio" class="btn-check" name="period" id="period_<?php echo $key; ?>"
+                               value="<?php echo $key; ?>" <?php echo $selectedPeriod === $key ? 'checked' : ''; ?>>
+                        <label class="btn btn-outline-primary" for="period_<?php echo $key; ?>">
+                            <?php echo $period['label']; ?>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+            </form>
         </div>
 
         <div class="card shadow-sm mb-4">
             <div class="card-body">
-                <h2 class="card-title h4">
-                    <?php echo $measurements[$selectedMeasurement]['name']; ?>
-                    <small class="text-muted">
-                        (<?php echo $periods[$selectedPeriod]['label']; ?>)
-                    </small>
-                </h2>
-                <div class="row text-center mb-4">
-                    <div class="col">
-                        <div class="h3 mb-0 text-primary">
-                            <?php echo $measurements[$selectedMeasurement]['format']($stats['min_value']); ?>
-                            <?php echo $measurements[$selectedMeasurement]['unit']; ?>
-                        </div>
-                        <div class="text-muted small">Minimum</div>
-                    </div>
-                    <div class="col">
-                        <div class="h3 mb-0 text-success">
-                            <?php echo $measurements[$selectedMeasurement]['format']($stats['avg_value']); ?>
-                            <?php echo $measurements[$selectedMeasurement]['unit']; ?>
-                        </div>
-                        <div class="text-muted small">Moyenne</div>
-                    </div>
-                    <div class="col">
-                        <div class="h3 mb-0 text-danger">
-                            <?php echo $measurements[$selectedMeasurement]['format']($stats['max_value']); ?>
-                            <?php echo $measurements[$selectedMeasurement]['unit']; ?>
-                        </div>
-                        <div class="text-muted small">Maximum</div>
-                    </div>
-                </div>
                 <canvas id="measurementChart"></canvas>
             </div>
         </div>
+
+        <?php foreach ($selectedMeasurements as $key => $info): ?>
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <h3 class="card-title h5 mb-3">
+                        <?php echo $info['name']; ?>
+                        <small class="text-muted">
+                            (<?php echo $periods[$selectedPeriod]['label']; ?>)
+                        </small>
+                    </h3>
+                    <div class="row text-center">
+                        <div class="col">
+                            <div class="h3 mb-0" style="color: <?php echo $measurementColors[$key]; ?>">
+                                <?php echo $info['format']($stats[$key]['min_value']); ?>
+                                <?php echo $info['unit']; ?>
+                            </div>
+                            <div class="text-muted small">Minimum</div>
+                        </div>
+                        <div class="col">
+                            <div class="h3 mb-0" style="color: <?php echo $measurementColors[$key]; ?>">
+                                <?php echo $info['format']($stats[$key]['avg_value']); ?>
+                                <?php echo $info['unit']; ?>
+                            </div>
+                            <div class="text-muted small">Moyenne</div>
+                        </div>
+                        <div class="col">
+                            <div class="h3 mb-0" style="color: <?php echo $measurementColors[$key]; ?>">
+                                <?php echo $info['format']($stats[$key]['max_value']); ?>
+                                <?php echo $info['unit']; ?>
+                            </div>
+                            <div class="text-muted small">Maximum</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
 
         <div class="card shadow-sm">
             <div class="card-body">
                 <h3 class="card-title h5">Informations</h3>
                 <ul class="list-unstyled mb-0">
-                    <li>Période : du <?php echo date('d/m/Y H:i', $stats['start_date']); ?> 
-                        au <?php echo date('d/m/Y H:i', $stats['end_date']); ?></li>
-                    <li>Nombre de mesures : <?php echo $stats['total_readings']; ?></li>
+                    <li>Période : du <?php echo date('d/m/Y H:i', $stats[array_key_first($stats)]['start_date']); ?> 
+                        au <?php echo date('d/m/Y H:i', $stats[array_key_first($stats)]['end_date']); ?></li>
+                    <li>Nombre de mesures : <?php echo $stats[array_key_first($stats)]['total_readings']; ?></li>
                 </ul>
             </div>
         </div>
@@ -234,44 +289,87 @@ $chartData = getChartData(
     const ctx = document.getElementById('measurementChart').getContext('2d');
     const chartData = <?php echo json_encode($chartData); ?>;
     const selectedPeriod = '<?php echo $selectedPeriod; ?>';
+    const measurements = <?php echo json_encode($selectedMeasurements); ?>;
+    const measurementColors = <?php echo json_encode($measurementColors); ?>;
+    
+    // Préparer les datasets
+    const datasets = [];
+    if (selectedPeriod === 'live') {
+        // Mode live : une ligne par mesure
+        Object.entries(measurements).forEach(([key, info]) => {
+            datasets.push({
+                label: info.name,
+                data: chartData.map(d => d[key + '_value']),
+                borderColor: measurementColors[key],
+                backgroundColor: measurementColors[key],
+                borderWidth: 2,
+                pointRadius: 2,
+                fill: false,
+                tension: 0.1,
+                yAxisID: key
+            });
+        });
+    } else {
+        // Mode agrégé : trois lignes par mesure
+        Object.entries(measurements).forEach(([key, info]) => {
+            datasets.push({
+                label: info.name + ' (Max)',
+                data: chartData.map(d => d[key + '_max']),
+                borderColor: measurementColors[key],
+                backgroundColor: measurementColors[key].replace('rgb', 'rgba').replace(')', ', 0.1)'),
+                fill: '+2',
+                tension: 0.1,
+                yAxisID: key
+            });
+            datasets.push({
+                label: info.name + ' (Moy)',
+                data: chartData.map(d => d[key + '_avg']),
+                borderColor: measurementColors[key],
+                backgroundColor: measurementColors[key].replace('rgb', 'rgba').replace(')', ', 0.1)'),
+                fill: true,
+                tension: 0.1,
+                yAxisID: key
+            });
+            datasets.push({
+                label: info.name + ' (Min)',
+                data: chartData.map(d => d[key + '_min']),
+                borderColor: measurementColors[key],
+                backgroundColor: measurementColors[key].replace('rgb', 'rgba').replace(')', ', 0.1)'),
+                fill: '-2',
+                tension: 0.1,
+                yAxisID: key
+            });
+        });
+    }
+
+    // Créer les axes Y
+    const scales = {
+        x: {
+            grid: {
+                display: selectedPeriod === 'live'
+            }
+        }
+    };
+    Object.entries(measurements).forEach(([key, info], index) => {
+        scales[key] = {
+            type: 'linear',
+            display: true,
+            position: index % 2 === 0 ? 'left' : 'right',
+            grid: {
+                drawOnChartArea: index === 0
+            },
+            title: {
+                display: true,
+                text: info.name + (info.unit ? ` (${info.unit})` : '')
+            }
+        };
+    });
     
     new Chart(ctx, {
         type: 'line',
         data: {
             labels: chartData.map(d => d.label),
-            datasets: selectedPeriod === 'live' ? [
-                {
-                    label: 'Valeur',
-                    data: chartData.map(d => d.value),
-                    borderColor: 'rgb(40, 167, 69)',
-                    borderWidth: 2,
-                    pointRadius: 2,
-                    fill: false,
-                    tension: 0.1
-                }
-            ] : [
-                {
-                    label: 'Maximum',
-                    data: chartData.map(d => d.max_value),
-                    borderColor: 'rgb(220, 53, 69)',
-                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                    fill: '+1'
-                },
-                {
-                    label: 'Moyenne',
-                    data: chartData.map(d => d.avg_value),
-                    borderColor: 'rgb(40, 167, 69)',
-                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                    fill: true
-                },
-                {
-                    label: 'Minimum',
-                    data: chartData.map(d => d.min_value),
-                    borderColor: 'rgb(0, 123, 255)',
-                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                    fill: '-1'
-                }
-            ]
+            datasets: datasets
         },
         options: {
             responsive: true,
@@ -280,29 +378,26 @@ $chartData = getChartData(
                 intersect: false,
                 mode: 'index'
             },
-            scales: {
-                x: {
-                    grid: {
-                        display: selectedPeriod === 'live'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: '<?php echo $measurements[$selectedMeasurement]['unit']; ?>'
-                    },
-                    grid: {
-                        display: true
-                    }
-                }
-            },
+            scales: scales,
             plugins: {
                 title: {
                     display: true,
-                    text: '<?php echo $measurements[$selectedMeasurement]['name']; ?>'
+                    text: 'Évolution des mesures'
                 }
             }
         }
+    });
+
+    // Auto-submit form when selection changes
+    document.querySelectorAll('#statsForm input').forEach(input => {
+        input.addEventListener('change', () => {
+            // Ensure at least one measurement is selected
+            if (document.querySelectorAll('#statsForm input[name="measurements[]"]:checked').length === 0) {
+                input.checked = true;
+                return;
+            }
+            document.getElementById('statsForm').submit();
+        });
     });
     </script>
 
