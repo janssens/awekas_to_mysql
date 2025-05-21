@@ -1,7 +1,7 @@
 <?php
-require 'vendor/autoload.php';
-require_once 'config.php';
-require_once 'includes/TelegramNotifier.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/TelegramNotifier.php';
 
 use Minishlink\WebPush\WebPush;
 use Minishlink\WebPush\Subscription;
