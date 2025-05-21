@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/DateFormatter.php';
+require_once __DIR__ . '/TelegramNotifier.php';
 
 class DataAgeChecker {
     private $db;
