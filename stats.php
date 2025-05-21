@@ -166,6 +166,9 @@ $measurementColors = array_combine(
         }
         .stats-header h1 {
             margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
         .stats-controls {
             display: flex;
@@ -185,16 +188,85 @@ $measurementColors = array_combine(
         .measurements-select .form-check {
             margin-bottom: 0.25rem;
         }
+
+        /* Styles pour le panneau latéral */
+        .sidebar {
+            position: fixed;
+            left: -320px;
+            top: 0;
+            bottom: 0;
+            width: 320px;
+            background: white;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            transition: left 0.3s ease;
+            z-index: 1040;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .sidebar.open {
+            left: 0;
+        }
+        .sidebar-toggle {
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.2s;
+        }
+        .sidebar-toggle:hover {
+            background-color: #f8f9fa;
+        }
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .sidebar-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s;
+            z-index: 1030;
+        }
+        .sidebar-backdrop.show {
+            opacity: 1;
+            visibility: visible;
+        }
         @media (max-width: 576px) {
-            .stats-controls {
-                flex-direction: column;
-                align-items: stretch;
+            .sidebar {
+                width: 100%;
+                left: -100%;
             }
-            .measurements-select {
-                max-width: none;
-            }
-            .btn-group {
-                order: -1;
+        }
+        .main-content {
+            transition: margin-left 0.3s ease;
+        }
+        @media (min-width: 992px) {
+            .main-content.shifted {
+                margin-left: 320px;
             }
         }
     </style>
@@ -202,11 +274,15 @@ $measurementColors = array_combine(
 <body class="bg-light">
     <?php require_once 'header.php'; ?>
     
-    <div class="container py-4">
-        <div class="stats-header">
-            <h1 class="h2">Statistiques Météo</h1>
-            <form class="stats-controls" method="get" id="statsForm">
-                <div class="measurements-select">
+    <!-- Panneau latéral -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Configuration</h2>
+            <button type="button" class="btn-close" aria-label="Fermer"></button>
+        </div>
+        <div class="sidebar-content">
+            <form id="statsForm" method="get">
+                <div class="measurements-select mb-4">
                     <div class="mb-2">Sélectionner les mesures :</div>
                     <?php foreach ($measurements as $key => $info): ?>
                         <div class="form-check">
@@ -219,7 +295,7 @@ $measurementColors = array_combine(
                         </div>
                     <?php endforeach; ?>
                 </div>
-                <div class="btn-group">
+                <div class="btn-group d-flex mb-3">
                     <?php foreach ($periods as $key => $period): ?>
                         <input type="radio" class="btn-check" name="period" id="period_<?php echo $key; ?>"
                                value="<?php echo $key; ?>" <?php echo $selectedPeriod === $key ? 'checked' : ''; ?>>
@@ -229,6 +305,19 @@ $measurementColors = array_combine(
                     <?php endforeach; ?>
                 </div>
             </form>
+        </div>
+    </div>
+    <div class="sidebar-backdrop"></div>
+
+    <!-- Contenu principal -->
+    <div class="container py-4 main-content">
+        <div class="stats-header">
+            <h1 class="h2">
+                <button type="button" class="sidebar-toggle">
+                    <i class="bi bi-sliders"></i>
+                </button>
+                Statistiques Météo
+            </h1>
         </div>
 
         <div class="card shadow-sm mb-4">
@@ -286,6 +375,40 @@ $measurementColors = array_combine(
     </div>
 
     <script>
+    // Configuration du panneau latéral
+    const sidebar = document.querySelector('.sidebar');
+    const backdrop = document.querySelector('.sidebar-backdrop');
+    const mainContent = document.querySelector('.main-content');
+    const toggleButton = document.querySelector('.sidebar-toggle');
+    const closeButton = document.querySelector('.sidebar .btn-close');
+
+    function toggleSidebar() {
+        sidebar.classList.toggle('open');
+        backdrop.classList.toggle('show');
+        if (window.innerWidth >= 992) {
+            mainContent.classList.toggle('shifted');
+        }
+    }
+
+    toggleButton.addEventListener('click', toggleSidebar);
+    closeButton.addEventListener('click', toggleSidebar);
+    backdrop.addEventListener('click', toggleSidebar);
+
+    // Auto-submit form when selection changes
+    document.querySelectorAll('#statsForm input').forEach(input => {
+        input.addEventListener('change', () => {
+            // Ensure at least one measurement is selected
+            if (input.type === 'checkbox') {
+                if (document.querySelectorAll('#statsForm input[name="measurements[]"]:checked').length === 0) {
+                    input.checked = true;
+                    return;
+                }
+            }
+            document.getElementById('statsForm').submit();
+        });
+    });
+
+    // Configuration du graphique
     const ctx = document.getElementById('measurementChart').getContext('2d');
     const chartData = <?php echo json_encode($chartData); ?>;
     const selectedPeriod = '<?php echo $selectedPeriod; ?>';
@@ -386,18 +509,6 @@ $measurementColors = array_combine(
                 }
             }
         }
-    });
-
-    // Auto-submit form when selection changes
-    document.querySelectorAll('#statsForm input').forEach(input => {
-        input.addEventListener('change', () => {
-            // Ensure at least one measurement is selected
-            if (document.querySelectorAll('#statsForm input[name="measurements[]"]:checked').length === 0) {
-                input.checked = true;
-                return;
-            }
-            document.getElementById('statsForm').submit();
-        });
     });
     </script>
 
