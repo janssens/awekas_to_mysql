@@ -170,6 +170,22 @@ $measurementColors = array_combine(
             align-items: center;
             gap: 1rem;
         }
+        .stats-header .btn-group {
+            width: 100%;
+            max-width: 600px;
+        }
+        .stats-header .btn-group .btn {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        @media (max-width: 768px) {
+            .stats-header .btn-group .btn {
+                padding: 0.375rem 0.5rem;
+                font-size: 0.875rem;
+            }
+        }
         .stats-controls {
             display: flex;
             flex-wrap: wrap;
@@ -274,51 +290,51 @@ $measurementColors = array_combine(
 <body class="bg-light">
     <?php require_once 'header.php'; ?>
     
-    <!-- Panneau latéral -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h2>Configuration</h2>
-            <button type="button" class="btn-close" aria-label="Fermer"></button>
-        </div>
-        <div class="sidebar-content">
-            <form id="statsForm" method="get">
-                <div class="measurements-select mb-4">
-                    <div class="mb-2">Sélectionner les mesures :</div>
-                    <?php foreach ($measurements as $key => $info): ?>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="measurements[]" 
-                                   value="<?php echo $key; ?>" id="check_<?php echo $key; ?>"
-                                   <?php echo isset($selectedMeasurements[$key]) ? 'checked' : ''; ?>>
-                            <label class="form-check-label" for="check_<?php echo $key; ?>">
-                                <?php echo $info['name']; ?>
-                            </label>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </form>
-        </div>
-    </div>
-    <div class="sidebar-backdrop"></div>
-
     <!-- Contenu principal -->
     <div class="container py-4 main-content">
-        <div class="stats-header">
-            <h1 class="h2">
-                <button type="button" class="sidebar-toggle">
-                    <i class="bi bi-sliders"></i>
-                </button>
-                Statistiques Météo
-            </h1>
-            <div class="btn-group">
-                <?php foreach ($periods as $key => $period): ?>
-                    <input type="radio" class="btn-check" name="period" id="period_<?php echo $key; ?>"
-                           value="<?php echo $key; ?>" <?php echo $selectedPeriod === $key ? 'checked' : ''; ?>>
-                    <label class="btn btn-outline-primary" for="period_<?php echo $key; ?>">
-                        <?php echo $period['label']; ?>
-                    </label>
-                <?php endforeach; ?>
+        <form id="statsForm" method="get">
+            <div class="stats-header">
+                <h1 class="h2">
+                    <button type="button" class="sidebar-toggle">
+                        <i class="bi bi-sliders"></i>
+                    </button>
+                    Statistiques Météo
+                </h1>
+                <div class="btn-group">
+                    <?php foreach ($periods as $key => $period): ?>
+                        <input type="radio" class="btn-check" name="period" id="period_<?php echo $key; ?>"
+                               value="<?php echo $key; ?>" <?php echo $selectedPeriod === $key ? 'checked' : ''; ?>>
+                        <label class="btn btn-outline-primary" for="period_<?php echo $key; ?>">
+                            <?php echo $period['label']; ?>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
             </div>
-        </div>
+
+            <!-- Panneau latéral -->
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <h2>Configuration</h2>
+                    <button type="button" class="btn-close" aria-label="Fermer"></button>
+                </div>
+                <div class="sidebar-content">
+                    <div class="measurements-select mb-4">
+                        <div class="mb-2">Sélectionner les mesures :</div>
+                        <?php foreach ($measurements as $key => $info): ?>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="measurements[]" 
+                                       value="<?php echo $key; ?>" id="check_<?php echo $key; ?>"
+                                       <?php echo isset($selectedMeasurements[$key]) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="check_<?php echo $key; ?>">
+                                    <?php echo $info['name']; ?>
+                                </label>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <div class="sidebar-backdrop"></div>
 
         <div class="card shadow-sm mb-4">
             <div class="card-body">
