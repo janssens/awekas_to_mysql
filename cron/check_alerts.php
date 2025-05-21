@@ -15,8 +15,7 @@ function shouldSendNotification($lastTriggered, $cooldown) {
 
 // Function to check if weather data is recent enough
 function isWeatherDataRecent($timestamp, $maxAge) {
-    $dataTime = strtotime($timestamp);
-    $age = time() - $dataTime;
+    $age = time() - $timestamp;
     return $age <= $maxAge;
 }
 
@@ -44,7 +43,7 @@ try {
 
         // Vérifier que les données sont plus récentes que le cooldown
         if (!isWeatherDataRecent($weatherData['timestamp'], $alert['notification_cooldown'])) {
-            error_log("Skipping alert check for {$key}: weather data is too old (last update: {$weatherData['timestamp']})");
+            error_log("Skipping alert check for {$key}: weather data is too old (last update: " . date('d/m/Y H:i:s', DateTimeImmutable::createFromTimestamp($weatherData['timestamp'])) . ")");
             continue;
         }
 
