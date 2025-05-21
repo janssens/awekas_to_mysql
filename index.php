@@ -58,6 +58,22 @@ function formatDateTime($timestamp) {
             margin-bottom: 1rem;
             color: #495057;
         }
+        @media (max-width: 768px) {
+            .container {
+                padding-left: 8px;
+                padding-right: 8px;
+            }
+            .weather-card {
+                padding: 12px !important;
+                border-radius: 10px;
+            }
+            .table {
+                margin-bottom: 0;
+            }
+            .measurement-group {
+                margin-bottom: 1.5rem;
+            }
+        }
     </style>
 </head>
 <body>

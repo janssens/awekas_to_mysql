@@ -80,80 +80,138 @@ $chartData = getChartData(
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @media (max-width: 768px) {
+            .container {
+                padding-left: 8px;
+                padding-right: 8px;
+            }
+            .card {
+                border-radius: 10px;
+            }
+            .card-body {
+                padding: 12px;
+            }
+            .btn-group {
+                width: 100%;
+            }
+            .btn-group .btn {
+                flex: 1;
+                padding: 0.375rem 0.5rem;
+                font-size: 0.875rem;
+            }
+            .h2 {
+                font-size: 1.5rem;
+            }
+            .h3 {
+                font-size: 1.25rem;
+            }
+        }
+        .measurement-select {
+            max-width: 100%;
+            width: 300px;
+        }
+        #measurementChart {
+            min-height: 300px;
+            max-height: 400px;
+        }
+        .stats-header {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stats-header h1 {
+            margin: 0;
+        }
+        .stats-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+        }
+        @media (max-width: 576px) {
+            .stats-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .measurement-select {
+                width: 100%;
+            }
+            .btn-group {
+                order: -1;
+            }
+        }
+    </style>
 </head>
 <body class="bg-light">
     <?php require_once 'header.php'; ?>
     
     <div class="container py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="stats-header">
             <h1 class="h2">Statistiques Météo</h1>
-            <div class="btn-group">
-                <?php foreach ($periods as $key => $period): ?>
-                    <a href="?measurement=<?php echo $selectedMeasurement; ?>&period=<?php echo $key; ?>" 
-                       class="btn btn-outline-primary <?php echo $selectedPeriod === $key ? 'active' : ''; ?>">
-                        <?php echo $period['label']; ?>
-                    </a>
-                <?php endforeach; ?>
-            </div>
-        </div>
-
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="list-group">
+            <div class="stats-controls">
+                <select class="form-select measurement-select" onchange="window.location.href='?measurement=' + this.value + '&period=<?php echo $selectedPeriod; ?>'">
                     <?php foreach ($measurements as $key => $info): ?>
-                        <a href="?measurement=<?php echo $key; ?>&period=<?php echo $selectedPeriod; ?>" 
-                           class="list-group-item list-group-item-action <?php echo $selectedMeasurement === $key ? 'active' : ''; ?>">
+                        <option value="<?php echo $key; ?>" <?php echo $selectedMeasurement === $key ? 'selected' : ''; ?>>
                             <?php echo $info['name']; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <div class="btn-group">
+                    <?php foreach ($periods as $key => $period): ?>
+                        <a href="?measurement=<?php echo $selectedMeasurement; ?>&period=<?php echo $key; ?>" 
+                           class="btn btn-outline-primary <?php echo $selectedPeriod === $key ? 'active' : ''; ?>">
+                            <?php echo $period['label']; ?>
                         </a>
                     <?php endforeach; ?>
                 </div>
             </div>
-            <div class="col-md-9">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body">
-                        <h2 class="card-title h4">
-                            <?php echo $measurements[$selectedMeasurement]['name']; ?>
-                            <small class="text-muted">
-                                (<?php echo $periods[$selectedPeriod]['label']; ?>)
-                            </small>
-                        </h2>
-                        <div class="row text-center mb-4">
-                            <div class="col">
-                                <div class="h3 mb-0 text-primary">
-                                    <?php echo $measurements[$selectedMeasurement]['format']($stats['min_value']); ?>
-                                    <?php echo $measurements[$selectedMeasurement]['unit']; ?>
-                                </div>
-                                <div class="text-muted small">Minimum</div>
-                            </div>
-                            <div class="col">
-                                <div class="h3 mb-0 text-success">
-                                    <?php echo $measurements[$selectedMeasurement]['format']($stats['avg_value']); ?>
-                                    <?php echo $measurements[$selectedMeasurement]['unit']; ?>
-                                </div>
-                                <div class="text-muted small">Moyenne</div>
-                            </div>
-                            <div class="col">
-                                <div class="h3 mb-0 text-danger">
-                                    <?php echo $measurements[$selectedMeasurement]['format']($stats['max_value']); ?>
-                                    <?php echo $measurements[$selectedMeasurement]['unit']; ?>
-                                </div>
-                                <div class="text-muted small">Maximum</div>
-                            </div>
-                        </div>
-                        <canvas id="measurementChart"></canvas>
-                    </div>
-                </div>
+        </div>
 
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h3 class="card-title h5">Informations</h3>
-                        <ul class="list-unstyled mb-0">
-                            <li>Période : du <?php echo date('d/m/Y H:i', $stats['start_date']); ?> 
-                                au <?php echo date('d/m/Y H:i', $stats['end_date']); ?></li>
-                            <li>Nombre de mesures : <?php echo $stats['total_readings']; ?></li>
-                        </ul>
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="card-title h4">
+                    <?php echo $measurements[$selectedMeasurement]['name']; ?>
+                    <small class="text-muted">
+                        (<?php echo $periods[$selectedPeriod]['label']; ?>)
+                    </small>
+                </h2>
+                <div class="row text-center mb-4">
+                    <div class="col">
+                        <div class="h3 mb-0 text-primary">
+                            <?php echo $measurements[$selectedMeasurement]['format']($stats['min_value']); ?>
+                            <?php echo $measurements[$selectedMeasurement]['unit']; ?>
+                        </div>
+                        <div class="text-muted small">Minimum</div>
+                    </div>
+                    <div class="col">
+                        <div class="h3 mb-0 text-success">
+                            <?php echo $measurements[$selectedMeasurement]['format']($stats['avg_value']); ?>
+                            <?php echo $measurements[$selectedMeasurement]['unit']; ?>
+                        </div>
+                        <div class="text-muted small">Moyenne</div>
+                    </div>
+                    <div class="col">
+                        <div class="h3 mb-0 text-danger">
+                            <?php echo $measurements[$selectedMeasurement]['format']($stats['max_value']); ?>
+                            <?php echo $measurements[$selectedMeasurement]['unit']; ?>
+                        </div>
+                        <div class="text-muted small">Maximum</div>
                     </div>
                 </div>
+                <canvas id="measurementChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h3 class="card-title h5">Informations</h3>
+                <ul class="list-unstyled mb-0">
+                    <li>Période : du <?php echo date('d/m/Y H:i', $stats['start_date']); ?> 
+                        au <?php echo date('d/m/Y H:i', $stats['end_date']); ?></li>
+                    <li>Nombre de mesures : <?php echo $stats['total_readings']; ?></li>
+                </ul>
             </div>
         </div>
     </div>
@@ -192,6 +250,7 @@ $chartData = getChartData(
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             interaction: {
                 intersect: false,
                 mode: 'index'
