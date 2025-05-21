@@ -43,7 +43,8 @@ try {
 
         // Vérifier que les données sont plus récentes que le cooldown
         if (!isWeatherDataRecent($weatherData['timestamp'], $alert['notification_cooldown'])) {
-            error_log("Skipping alert check for {$key}: weather data is too old (last update: " . date('d/m/Y H:i:s', DateTimeImmutable::createFromTimestamp($weatherData['timestamp'])) . ")");
+            $dataTime = new DateTime(); $dataTime->setTimestamp($weatherData['timestamp']);
+            error_log("Skipping alert check for {$key}: weather data is too old (last update: " . date('d/m/Y H:i:s',$dataTime) . ")");
             continue;
         }
 
