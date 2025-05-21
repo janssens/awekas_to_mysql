@@ -24,16 +24,29 @@ function getStats($db, $measurement, $interval) {
 
 // Fonction pour obtenir les données pour le graphique
 function getChartData($db, $measurement, $interval, $format) {
-    $sql = "SELECT 
-        DATE_FORMAT(recorded_at, '$format') as label,
-        MIN($measurement) as min_value,
-        MAX($measurement) as max_value,
-        AVG($measurement) as avg_value
-    FROM weather_data 
-    WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL $interval)
-    AND $measurement IS NOT NULL
-    GROUP BY label
-    ORDER BY datatimestamp";
+    // Pour la période "live", on ne fait pas de groupement
+    if ($interval === '6 HOUR') {
+        $sql = "SELECT 
+            DATE_FORMAT(recorded_at, '$format') as label,
+            $measurement as value,
+            datatimestamp as timestamp
+        FROM weather_data 
+        WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL $interval)
+        AND $measurement IS NOT NULL
+        ORDER BY datatimestamp";
+    } else {
+        $sql = "SELECT 
+            DATE_FORMAT(recorded_at, '$format') as label,
+            MIN($measurement) as min_value,
+            MAX($measurement) as max_value,
+            AVG($measurement) as avg_value
+        FROM weather_data 
+        WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL $interval)
+        AND $measurement IS NOT NULL
+        GROUP BY label
+        ORDER BY datatimestamp";
+    }
+    
     try {
         $stmt = $db->prepare($sql);
         $stmt->execute([]);
@@ -53,6 +66,7 @@ if (!isset($measurements[$selectedMeasurement])) {
 // Sélectionner la période (par défaut: jour)
 $selectedPeriod = $_GET['period'] ?? 'day';
 $periods = [
+    'live' => ['label' => 'Live (6h)', 'format' => '%H:%i', 'interval' => '6 HOUR'],
     'day' => ['label' => 'Dernières 24h', 'format' => '%H:00', 'interval' => '1 DAY'],
     'week' => ['label' => '7 derniers jours', 'format' => '%H:00 %d/%m', 'interval' => '7 DAY'],
     'month' => ['label' => '30 derniers jours', 'format' => '%d/%m', 'interval' => '30 DAY'],
@@ -219,12 +233,23 @@ $chartData = getChartData(
     <script>
     const ctx = document.getElementById('measurementChart').getContext('2d');
     const chartData = <?php echo json_encode($chartData); ?>;
+    const selectedPeriod = '<?php echo $selectedPeriod; ?>';
     
     new Chart(ctx, {
         type: 'line',
         data: {
             labels: chartData.map(d => d.label),
-            datasets: [
+            datasets: selectedPeriod === 'live' ? [
+                {
+                    label: 'Valeur',
+                    data: chartData.map(d => d.value),
+                    borderColor: 'rgb(40, 167, 69)',
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    fill: false,
+                    tension: 0.1
+                }
+            ] : [
                 {
                     label: 'Maximum',
                     data: chartData.map(d => d.max_value),
@@ -256,10 +281,18 @@ $chartData = getChartData(
                 mode: 'index'
             },
             scales: {
+                x: {
+                    grid: {
+                        display: selectedPeriod === 'live'
+                    }
+                },
                 y: {
                     title: {
                         display: true,
                         text: '<?php echo $measurements[$selectedMeasurement]['unit']; ?>'
+                    },
+                    grid: {
+                        display: true
                     }
                 }
             },
