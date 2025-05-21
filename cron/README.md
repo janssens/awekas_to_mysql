@@ -1,48 +1,66 @@
-# Scripts CRON
+# Tâches Automatisées
 
-Ce répertoire contient les scripts destinés à être exécutés périodiquement via cron.
+Ce dossier contient les scripts qui doivent être exécutés périodiquement pour maintenir le système de surveillance météo à jour.
 
-## Vérification de l'âge des données (`check_data_age.php`)
+## Scripts Disponibles
 
-Ce script vérifie si les données météo sont à jour et envoie des notifications si nécessaire.
+### update_weather_data.php
 
-### Configuration du CRON
+Script principal de mise à jour des données météorologiques. Il :
+- Récupère les dernières données depuis l'API AWEKAS
+- Les enregistre dans la base de données
+- Vérifie l'état de la station (en ligne/hors ligne)
+- Envoie des notifications si la station change d'état
 
-Pour exécuter la vérification toutes les 15 minutes, ajoutez la ligne suivante à votre crontab :
+**Fréquence recommandée** : Toutes les 5 minutes
 
 ```bash
-*/15 * * * * /usr/bin/php /chemin/vers/meteo_farm/cron/check_data_age.php >> /var/log/meteo_farm/data_check.log 2>&1
+*/5 * * * * php /chemin/vers/cron/update_weather_data.php
 ```
 
-Pour éditer votre crontab :
+### check_alerts.php
+
+Vérifie les conditions d'alerte configurées et envoie des notifications si nécessaire.
+- Compare les mesures actuelles avec les seuils configurés
+- Envoie des notifications push et/ou Telegram si les conditions sont remplies
+- Gère l'historique des alertes
+
+**Fréquence recommandée** : Toutes les 5 minutes
+
+```bash
+*/5 * * * * php /chemin/vers/cron/check_alerts.php
+```
+
+## Configuration des Tâches Cron
+
+1. Ouvrir l'éditeur crontab :
 ```bash
 crontab -e
 ```
 
-### Codes de retour
+2. Ajouter les lignes suivantes (en ajustant les chemins) :
+```bash
+# Mise à jour des données météo
+*/5 * * * * php /chemin/complet/vers/cron/update_weather_data.php
 
-Le script utilise différents codes de retour pour indiquer son état :
-- 0 : Les données sont à jour
-- 1 : Les données sont obsolètes (> 1 heure)
-- 2 : Erreur lors de l'exécution
+# Vérification des alertes
+*/5 * * * * php /chemin/complet/vers/cron/check_alerts.php
+```
 
-### Journalisation
+## Logs
 
-Le script produit des messages détaillés qui peuvent être redirigés vers un fichier de log :
-- État de la vérification
-- Horodatage de la dernière mise à jour
-- Messages d'erreur éventuels
+Les scripts génèrent des messages de log standards qui peuvent être redirigés vers un fichier :
 
-### Notifications
+```bash
+*/5 * * * * php /chemin/vers/cron/update_weather_data.php >> /var/log/meteo_farm/update.log 2>&1
+*/5 * * * * php /chemin/vers/cron/check_alerts.php >> /var/log/meteo_farm/alerts.log 2>&1
+```
 
-Si les données sont obsolètes :
-- Une notification Telegram sera envoyée (si configurée)
-- Un délai minimum d'une heure est respecté entre les notifications
-- L'état de la dernière notification est stocké dans `/data/last_stale_notification.txt`
+## Dépannage
 
-### Prérequis
-
-- PHP CLI
-- Accès à la base de données
-- Configuration Telegram (optionnel)
-- Droits d'écriture sur le dossier `/data` 
+Si les scripts ne semblent pas s'exécuter :
+1. Vérifier les permissions des fichiers
+2. Vérifier les logs pour les erreurs
+3. S'assurer que PHP CLI est installé
+4. Vérifier que les chemins sont corrects
+5. Vérifier la configuration dans `config.php` 

@@ -4,13 +4,43 @@ require_once __DIR__ . '/DateFormatter.php';
 class DataAgeChecker {
     private $db;
     private $telegram;
-    private $lastNotificationFile;
+    private $stateFile;
     private $notificationCooldown = 3600; // 1 heure entre les notifications
 
     public function __construct($db) {
         $this->db = $db;
         $this->telegram = new TelegramNotifier($db);
-        $this->lastNotificationFile = __DIR__ . '/../data/last_stale_notification.txt';
+        $this->stateFile = __DIR__ . '/../data/station_status.json';
+    }
+
+    private function getState() {
+        if (!file_exists($this->stateFile)) {
+            return [
+                'state' => 'online',
+                'last_notification' => 0
+            ];
+        }
+        $data = json_decode(file_get_contents($this->stateFile), true);
+        return $data ?: [
+            'state' => 'online',
+            'last_notification' => 0
+        ];
+    }
+
+    private function saveState($state, $notificationTime = null) {
+        // Créer le répertoire data s'il n'existe pas
+        $dataDir = dirname($this->stateFile);
+        if (!is_dir($dataDir)) {
+            mkdir($dataDir, 0755, true);
+        }
+
+        $currentData = $this->getState();
+        $currentData['state'] = $state;
+        if ($notificationTime !== null) {
+            $currentData['last_notification'] = $notificationTime;
+        }
+
+        file_put_contents($this->stateFile, json_encode($currentData));
     }
 
     public function checkDataAge() {
@@ -18,6 +48,7 @@ class DataAgeChecker {
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$result) {
+            $this->handleStateChange('offline');
             return [
                 'is_stale' => true,
                 'last_update' => null,
@@ -30,10 +61,12 @@ class DataAgeChecker {
         $ageSeconds = $now - $lastUpdate;
         $ageMinutes = round($ageSeconds / 60);
 
-        $isStale = $ageSeconds > 3600; // Plus d'une heure
+        $isStale = $ageSeconds > 1800; // Plus d'une demi heure
 
         if ($isStale) {
-            $this->notifyIfNeeded($ageMinutes, $lastUpdate);
+            $this->handleStateChange('offline', $ageMinutes, $lastUpdate);
+        } else {
+            $this->handleStateChange('online', $ageMinutes, $lastUpdate);
         }
 
         return [
@@ -43,22 +76,28 @@ class DataAgeChecker {
         ];
     }
 
-    private function notifyIfNeeded($ageMinutes, $lastUpdate) {
-        // Vérifier si on a déjà notifié récemment
-        if (file_exists($this->lastNotificationFile)) {
-            $lastNotification = (int)file_get_contents($this->lastNotificationFile);
-            if ((time() - $lastNotification) < $this->notificationCooldown) {
-                return;
-            }
+    private function handleStateChange($newState, $ageMinutes = null, $lastUpdate = null) {
+        $stateData = $this->getState();
+        $lastState = $stateData['state'];
+        $lastNotification = $stateData['last_notification'];
+        
+        $now = time();
+        if (($now - $lastNotification) < $this->notificationCooldown) {
+            return;
         }
 
-        // Créer le répertoire data s'il n'existe pas
-        $dataDir = dirname($this->lastNotificationFile);
-        if (!is_dir($dataDir)) {
-            mkdir($dataDir, 0755, true);
+        if ($newState === 'offline' && $lastState === 'online') {
+            $this->notifyOffline($ageMinutes, $lastUpdate);
+            $this->saveState($newState, $now);
+        } else if ($newState === 'online' && $lastState === 'offline') {
+            $this->notifyRecovery($lastUpdate);
+            $this->saveState($newState, $now);
+        } else {
+            $this->saveState($newState);
         }
+    }
 
-        // Envoyer la notification Telegram
+    private function notifyOffline($ageMinutes, $lastUpdate) {
         $message = "<b>⚠️ Alerte Station Météo</b>\n\n" .
                   "Aucune donnée reçue depuis {$ageMinutes} minutes.\n" .
                   "Veuillez vérifier la station météo.\n\n" .
@@ -67,8 +106,15 @@ class DataAgeChecker {
         if ($this->telegram->isConfigured()) {
             $this->telegram->sendMessage($message);
         }
+    }
 
-        // Enregistrer l'heure de la notification
-        file_put_contents($this->lastNotificationFile, time());
+    private function notifyRecovery($lastUpdate) {
+        $message = "<b>✅ Station Météo en ligne</b>\n\n" .
+                  "La station météo est à nouveau en ligne.\n" .
+                  "Dernière mise à jour : " . DateFormatter::formatFrench($lastUpdate);
+
+        if ($this->telegram->isConfigured()) {
+            $this->telegram->sendMessage($message);
+        }
     }
 } 

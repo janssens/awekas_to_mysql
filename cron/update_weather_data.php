@@ -1,5 +1,10 @@
 <?php
-require_once 'config.php';
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/DataAgeChecker.php';
+
+// Vérifier l'âge des données
+$dataAgeChecker = new DataAgeChecker($db);
+$dataAgeChecker->checkDataAge();
 
 $access_point = 'http://api.awekas.at/current.php?key=';
 $str = file_get_contents($access_point.AWEKAS_KEY.'&lng='.AWEKAS_LANG);
@@ -55,6 +60,7 @@ try {
     $stmt = $db->prepare($sql);
     $stmt->execute($values);
     echo "Weather data successfully updated\n";
+
 } catch (PDOException $e) {
     die("Error inserting data: " . $e->getMessage() . "\n");
 }
