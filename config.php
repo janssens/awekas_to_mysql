@@ -1,8 +1,12 @@
 <?php
 // Function to load environment variables from .env file
-function loadEnv($path = '.env') {
+function loadEnv($path = null) {
+    if ($path === null) {
+        $path = __DIR__ . '/.env';
+    }
+    
     if (!file_exists($path)) {
-        die(".env file not found\n");
+        die(".env file not found at: $path\n");
     }
 
     $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
