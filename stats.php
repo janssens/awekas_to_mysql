@@ -172,7 +172,6 @@ $measurementColors = array_combine(
         }
         .stats-header .btn-group {
             width: 100%;
-            max-width: 600px;
         }
         .stats-header .btn-group .btn {
             flex: 1;
