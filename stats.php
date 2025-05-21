@@ -295,15 +295,6 @@ $measurementColors = array_combine(
                         </div>
                     <?php endforeach; ?>
                 </div>
-                <div class="btn-group d-flex mb-3">
-                    <?php foreach ($periods as $key => $period): ?>
-                        <input type="radio" class="btn-check" name="period" id="period_<?php echo $key; ?>"
-                               value="<?php echo $key; ?>" <?php echo $selectedPeriod === $key ? 'checked' : ''; ?>>
-                        <label class="btn btn-outline-primary" for="period_<?php echo $key; ?>">
-                            <?php echo $period['label']; ?>
-                        </label>
-                    <?php endforeach; ?>
-                </div>
             </form>
         </div>
     </div>
@@ -318,6 +309,15 @@ $measurementColors = array_combine(
                 </button>
                 Statistiques Météo
             </h1>
+            <div class="btn-group">
+                <?php foreach ($periods as $key => $period): ?>
+                    <input type="radio" class="btn-check" name="period" id="period_<?php echo $key; ?>"
+                           value="<?php echo $key; ?>" <?php echo $selectedPeriod === $key ? 'checked' : ''; ?>>
+                    <label class="btn btn-outline-primary" for="period_<?php echo $key; ?>">
+                        <?php echo $period['label']; ?>
+                    </label>
+                <?php endforeach; ?>
+            </div>
         </div>
 
         <div class="card shadow-sm mb-4">
